@@ -18,12 +18,19 @@ import 'package:calibre_web_companion/features/book_details/bloc/book_details_st
 import 'package:calibre_web_companion/features/book_details/data/models/book_details_model.dart';
 import 'package:calibre_web_companion/features/book_details/data/models/tag_model.dart';
 import 'package:calibre_web_companion/features/book_details/presentation/widgets/add_to_shelf_widget.dart';
+import 'package:calibre_web_companion/features/book_details/presentation/widgets/book_header.dart';
 import 'package:calibre_web_companion/features/book_details/presentation/widgets/download_to_device_widget.dart';
 import 'package:calibre_web_companion/features/book_details/presentation/widgets/edit_book_metadata_widget.dart';
 import 'package:calibre_web_companion/features/book_details/presentation/widgets/send_to_ereader_widget.dart';
+import 'package:calibre_web_companion/features/book_view/bloc/book_view_bloc.dart';
+import 'package:calibre_web_companion/features/book_view/bloc/book_view_event.dart';
 import 'package:calibre_web_companion/features/book_view/data/models/book_view_model.dart';
+import 'package:calibre_web_companion/features/book_view/data/models/library_filter.dart';
 import 'package:calibre_web_companion/features/discover/blocs/discover_event.dart';
 import 'package:calibre_web_companion/features/discover_details/presentation/pages/discover_details_page.dart';
+import 'package:calibre_web_companion/features/homepage/app_destination.dart';
+import 'package:calibre_web_companion/features/homepage/bloc/homepage_bloc.dart';
+import 'package:calibre_web_companion/features/homepage/bloc/homepage_event.dart';
 import 'package:calibre_web_companion/features/reader/data/epub_bookmark_source.dart';
 import 'package:calibre_web_companion/features/reader/data/internal_reader_formats.dart';
 import 'package:calibre_web_companion/features/reader/data/reader_preferences.dart';
@@ -33,10 +40,12 @@ import 'package:calibre_web_companion/features/settings/data/models/book_details
 import 'package:calibre_web_companion/features/settings/data/models/book_details_section.dart';
 import 'package:calibre_web_companion/features/settings/presentation/pages/settings_page.dart';
 import 'package:calibre_web_companion/l10n/app_localizations.dart';
+import 'package:calibre_web_companion/shared/ui/action_bar.dart';
+import 'package:calibre_web_companion/shared/ui/book_cover.dart';
+import 'package:calibre_web_companion/shared/ui/expandable_text.dart';
 import 'package:calibre_web_companion/shared/widgets/app_dialog_button.dart';
 import 'package:calibre_web_companion/shared/widgets/app_options_sheet.dart';
 import 'package:calibre_web_companion/shared/widgets/app_skeletonizer.dart';
-import 'package:calibre_web_companion/shared/widgets/book_cover_widget.dart';
 import 'package:cosmos_epub/cosmos_epub.dart';
 import 'package:cosmos_epub/show_epub.dart' as cosmos_reader;
 import 'package:docman/docman.dart';
@@ -917,9 +926,9 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                         ),
                       )
                       : Text(
-                        book.title.length > 30
-                            ? '${book.title.substring(0, 30)}...'
-                            : book.title,
+                        book.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
               leading: IconButton(
                 onPressed: () => Navigator.of(context).pop(_didUpdateMetadata),
@@ -955,10 +964,6 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                 ),
               ),
             ),
-            floatingActionButton:
-                isLoading
-                    ? null
-                    : SendToEreaderWidget(book: book, isLoading: isLoading),
           );
         },
       ),
@@ -994,26 +999,8 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
         ).toSet();
 
     final sectionBuilders = <String, Widget Function()>{
-      BookDetailsSection.bookActions.key: () {
-        final actions = _buildBookActions(
-          context,
-          localizations,
-          state,
-          book,
-          isLoading,
-        );
-
-        if (actions is SizedBox) {
-          return const SizedBox.shrink();
-        }
-
-        return _buildCard(
-          context,
-          Icons.menu_book_rounded,
-          localizations.bookActions,
-          actions,
-        );
-      },
+      // The action bar sits under the header, not among the sections.
+      BookDetailsSection.bookActions.key: () => const SizedBox.shrink(),
       BookDetailsSection.readingProgress.key:
           () => _buildReadingProgressSection(context, localizations),
       BookDetailsSection.rating.key:
@@ -1081,7 +1068,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
               if (parsePubdate(book.pubdate) case final pubdate?)
                 _buildInfoRow(
                   context,
-                  localizations.updated,
+                  localizations.published,
                   intl.DateFormat.yMMMMd(
                     localizations.localeName,
                   ).format(pubdate),
@@ -1134,12 +1121,14 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                 _buildInfoRow(
                   context,
                   localizations.size,
-                  _formatFileSize(
-                    book.formatMetadata.formats.entries.first.value.size!,
-                  ),
+                  [
+                    for (final MapEntry(:key, :value)
+                        in book.formatMetadata.formats.entries)
+                      if (value.size != null)
+                        '${key.toUpperCase()} ${_formatFileSize(value.size!)}',
+                  ].join(' · '),
                   Icons.data_usage_rounded,
                 ),
-              _buildInfoRow(context, 'ID', book.uuid, Icons.tag_rounded),
             ],
           ),
       BookDetailsSection.tags.key:
@@ -1164,10 +1153,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                     localizations.description,
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: Text(
-                        book.comments,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
+                      child: ExpandableText(book.comments),
                     ),
                   )
                   : const SizedBox.shrink(),
@@ -1191,133 +1177,111 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
             ]
             : visibleSections;
 
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(
-          child: SizedBox(
-            height: 420,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                _buildCoverImage(context, book.id, book.cover),
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.black.withValues(alpha: 0.0),
-                        Colors.black.withValues(alpha: 0.3),
-                        Colors.black,
-                      ],
-                      stops: const [0.0, 0.65, 1.0],
-                    ),
-                  ),
-                ),
-                Positioned(
-                  left: 16,
-                  right: 16,
-                  bottom: 20,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        book.title,
-                        style: Theme.of(
-                          context,
-                        ).textTheme.headlineMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      _buildAuthorLine(context, localizations, state, book),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-
-        SliverToBoxAdapter(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [...bodySections, const SizedBox(height: 24)],
-          ),
-        ),
-      ],
+    final caps = ServerCapabilities.fromServerType(
+      GetIt.instance<SharedPreferences>().getString('server_type'),
     );
-  }
-
-  Widget _buildAuthorLine(
-    BuildContext context,
-    AppLocalizations localizations,
-    BookDetailsState state,
-    BookDetailsModel book,
-  ) {
-    final style = Theme.of(context).textTheme.titleMedium?.copyWith(
-      color: Colors.white.withValues(alpha: .9),
-    );
-
-    final serverType = GetIt.instance<SharedPreferences>().getString(
-      'server_type',
-    );
-    final canBrowseAuthors =
-        ServerCapabilities.fromServerType(serverType).discover;
-
+    final bloc = context.read<BookDetailsBloc>();
     final authors = _authorsOf(book);
-    final isNavigating =
-        state.authorNavigationStatus == AuthorNavigationStatus.loading;
+    final header = BookHeader(
+      book: book,
+      isRead: state.isBookRead,
+      isArchived: state.isBookArchived,
+      onDevice: state.isDownloaded,
+      busyRead: state.readStatusState == ReadStatusState.loading,
+      busyArchived: state.archiveStatusState == ArchiveStatusState.loading,
+      onToggleRead:
+          caps.readingProgress && !isLoading
+              ? () => bloc.add(ToggleReadStatus(book.id))
+              : null,
+      onToggleArchived:
+          caps.readingProgress && !isLoading
+              ? () => bloc.add(ToggleArchiveStatus(book.id))
+              : null,
+      onAuthorTap:
+          caps.discover && authors.isNotEmpty
+              ? () => _onAuthorTap(context, localizations, authors)
+              : null,
+      onSeriesTap:
+          book.series.isNotEmpty
+              ? () => bloc.add(OpenSeries(book.series))
+              : null,
+    );
+    final actions = _buildBookActions(
+      context,
+      localizations,
+      state,
+      book,
+      isLoading,
+    );
 
-    if (authors.isEmpty || !canBrowseAuthors) {
-      return Text(
-        localizations.by(book.authors),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: style,
-      );
-    }
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(8.0),
-      onTap:
-          isNavigating
-              ? null
-              : () => _onAuthorTap(context, localizations, authors),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2.0, horizontal: 4.0),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Flexible(
-              child: Text(
-                localizations.by(book.authors),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: style,
-              ),
-            ),
-            const SizedBox(width: 6),
-            if (isNavigating)
-              const SizedBox(
-                width: 12,
-                height: 12,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
+    return LayoutBuilder(
+      builder: (context, box) {
+        // Two panes on wide windows: cover and actions stay in view while
+        // the details scroll beside them.
+        if (box.maxWidth >= 840) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 360,
+                child: ListView(
+                  padding: const EdgeInsets.all(24),
+                  children: [
+                    BookCover(
+                      title: book.title,
+                      author: book.authors,
+                      bookId: book.id,
+                      coverUrl: book.cover,
+                    ),
+                    const SizedBox(height: 24),
+                    actions,
+                  ],
                 ),
-              )
-            else
-              Icon(
-                Icons.chevron_right_rounded,
-                size: 18,
-                color: Colors.white.withValues(alpha: .7),
               ),
+              const VerticalDivider(width: 1, thickness: 0),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(8, 24, 8, 24),
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: BookHeader(
+                        book: book,
+                        isRead: header.isRead,
+                        isArchived: header.isArchived,
+                        onDevice: header.onDevice,
+                        busyRead: header.busyRead,
+                        busyArchived: header.busyArchived,
+                        onToggleRead: header.onToggleRead,
+                        onToggleArchived: header.onToggleArchived,
+                        onAuthorTap: header.onAuthorTap,
+                        onSeriesTap: header.onSeriesTap,
+                        coverWidth: 0,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ...bodySections,
+                  ],
+                ),
+              ),
+            ],
+          );
+        }
+        return ListView(
+          padding: const EdgeInsets.only(bottom: 24),
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              child: header,
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+              child: actions,
+            ),
+            ...bodySections,
           ],
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -1397,6 +1361,12 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
     );
   }
 
+  /// The book's actions in three tiers (see [ActionBar]):
+  /// - primary: Read when an in-app readable format exists, else Download;
+  /// - up to three labelled secondaries, in the user's configured order;
+  /// - everything else, Delete included, in the overflow menu.
+  ///
+  /// Read and archive state are toggles in the header, not actions here.
   Widget _buildBookActions(
     BuildContext context,
     AppLocalizations localizations,
@@ -1405,226 +1375,204 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
     bool isLoading,
   ) {
     final settingsState = context.select((SettingsBloc bloc) => bloc.state);
-    final enabledActionKeys = settingsState.enabledBookActions.toSet();
+    final enabled = settingsState.enabledBookActions.toSet();
     final serverType = GetIt.instance<SharedPreferences>().getString(
       'server_type',
     );
     final caps = ServerCapabilities.fromServerType(serverType);
+    final bloc = context.read<BookDetailsBloc>();
 
-    final actionBuilders = <String, Widget Function()>{
-      BookDetailsAction.toggleReadStatus.key:
-          () => IconButton(
-            icon: CircleAvatar(
-              backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
-              child:
-                  state.readStatusState == ReadStatusState.loading
-                      ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 3),
-                      )
-                      : Icon(
-                        state.isBookRead
-                            ? Icons.visibility
-                            : Icons.visibility_off,
-                      ),
-            ),
-            onPressed:
-                isLoading
-                    ? null
-                    : () => context.read<BookDetailsBloc>().add(
-                      ToggleReadStatus(book.id),
-                    ),
-            tooltip: localizations.markAsReadUnread,
-          ),
-      BookDetailsAction.toggleArchiveStatus.key:
-          () => IconButton(
-            icon: CircleAvatar(
-              backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
-              child:
-                  state.archiveStatusState == ArchiveStatusState.loading
-                      ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 3),
-                      )
-                      : Icon(
-                        state.isBookArchived ? Icons.archive : Icons.unarchive,
-                      ),
-            ),
-            onPressed:
-                isLoading
-                    ? null
-                    : () => context.read<BookDetailsBloc>().add(
-                      ToggleArchiveStatus(book.id),
-                    ),
-            tooltip: localizations.archiveUnarchive,
-          ),
-      BookDetailsAction.editMetadata.key:
-          () => EditBookMetadataWidget(
-            book: book,
-            isLoading: isLoading,
-            bookViewModel: state.bookViewModel ?? widget.bookViewModel,
-          ),
-      BookDetailsAction.addToShelf.key:
-          () => AddToShelfWidget(book: book, isLoading: isLoading),
-      BookDetailsAction.downloadToDevice.key:
-          () => DownloadToDeviceWidget(book: book, isLoading: isLoading),
-      BookDetailsAction.openInInternalReader.key:
-          () => IconButton(
-            icon: CircleAvatar(
-              backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
-              child:
-                  state.openInInternalReaderState ==
-                          OpenInInternalReaderState.loading
-                      ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 3),
-                      )
-                      : const Icon(Icons.menu_book_rounded),
-            ),
-            onPressed:
-                isLoading
-                    ? null
-                    : () async {
-                      final selectedFormat = await _selectInternalReaderFormat(
-                        context,
-                        localizations,
-                        book,
-                      );
-                      if (selectedFormat == null) {
-                        return;
-                      }
-
-                      // ignore: use_build_context_synchronously
-                      _requestInternalReader(context, book, selectedFormat);
-                    },
-            tooltip: localizations.openInInternalReader,
-          ),
-      BookDetailsAction.openInReader.key:
-          () => IconButton(
-            icon: CircleAvatar(
-              backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
-              child:
-                  state.openInReaderState == OpenInReaderState.loading
-                      ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 3),
-                      )
-                      : const Icon(Icons.open_in_new_rounded),
-            ),
-            onPressed:
-                isLoading
-                    ? null
-                    : () => _triggerExternalReader(context, localizations),
-            tooltip: localizations.openInReader,
-          ),
-      BookDetailsAction.openInBrowser.key:
-          () => IconButton(
-            icon: CircleAvatar(
-              backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
-              child: const Icon(Icons.open_in_browser_rounded),
-            ),
-            onPressed:
-                () => context.read<BookDetailsBloc>().add(
-                  const OpenBookInBrowser(),
-                ),
-            tooltip: localizations.openBookInBrowser,
-          ),
-      BookDetailsAction.deleteBook.key:
-          () => IconButton(
-            icon: CircleAvatar(
-              backgroundColor: Theme.of(context).colorScheme.errorContainer,
-              child:
-                  state.deleteBookState == DeleteBookState.loading
-                      ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 3),
-                      )
-                      : Icon(
-                        Icons.delete_rounded,
-                        color: Theme.of(context).colorScheme.error,
-                      ),
-            ),
-            onPressed:
-                isLoading
-                    ? null
-                    : () async {
-                      final confirm = await showDialog<bool>(
-                        context: context,
-                        builder: (context) {
-                          return AlertDialog(
-                            title: Text(localizations.deleteBook),
-                            content: Text(localizations.deleteBookConfirmation),
-                            actions: [
-                              TextButton(
-                                onPressed:
-                                    () => Navigator.of(context).pop(false),
-                                child: Text(localizations.cancel),
-                              ),
-                              AppDialogButton.destructive(
-                                onPressed:
-                                    () => Navigator.of(context).pop(true),
-                                label: localizations.delete,
-                              ),
-                            ],
-                          );
-                        },
-                      );
-
-                      if (confirm == true) {
-                        // ignore: use_build_context_synchronously
-                        context.read<BookDetailsBloc>().add(
-                          DeleteBook(book.id),
-                        );
-                      }
-                    },
-            tooltip: localizations.deleteBook,
-          ),
-    };
-
-    final unsupportedActions = <String>{
-      if (!caps.readingProgress) BookDetailsAction.toggleReadStatus.key,
-      if (!caps.readingProgress) BookDetailsAction.toggleArchiveStatus.key,
-      if (!caps.editMetadata) BookDetailsAction.editMetadata.key,
-      if (!caps.shelves) BookDetailsAction.addToShelf.key,
-      if (!caps.deleteBooks) BookDetailsAction.deleteBook.key,
-      if (serverType != null && serverType != 'calibreWeb')
-        BookDetailsAction.openInBrowser.key,
-    };
-
-    final visibleOrder =
-        settingsState.bookActionsOrder.where((actionKey) {
-          final isEnabled = enabledActionKeys.contains(actionKey);
-          final exists = actionBuilders.containsKey(actionKey);
-          final isSupported = !unsupportedActions.contains(actionKey);
-          return isEnabled && exists && isSupported;
-        }).toList();
-
-    if (visibleOrder.isEmpty) {
-      return const SizedBox.shrink();
+    bool allowed(BookDetailsAction action) {
+      if (!enabled.contains(action.key)) return false;
+      return switch (action) {
+        BookDetailsAction.editMetadata => caps.editMetadata,
+        BookDetailsAction.addToShelf => caps.shelves,
+        BookDetailsAction.deleteBook => caps.deleteBooks,
+        BookDetailsAction.openInBrowser =>
+          serverType == null || serverType == 'calibreWeb',
+        _ => true,
+      };
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minWidth: constraints.maxWidth),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children:
-                  visibleOrder
-                      .map((actionKey) => actionBuilders[actionKey]!())
-                      .toList(),
-            ),
-          ),
-        );
-      },
+    final readable = book.formats.any(
+      (f) => _isInternalReaderSupportedFormat(f.toLowerCase()),
     );
+    final readInApp =
+        readable && allowed(BookDetailsAction.openInInternalReader);
+
+    Widget tile(BuildContext context, BarAction action) => ActionTile(action);
+    Widget primaryTile(BuildContext context, BarAction action) =>
+        PrimaryActionButton(action);
+
+    final Widget primary =
+        readInApp
+            ? PrimaryActionButton(
+              BarAction(
+                icon: Icons.auto_stories_rounded,
+                label: localizations.read,
+                progress:
+                    state.openInInternalReaderState ==
+                            OpenInInternalReaderState.loading
+                        ? -1
+                        : null,
+                onPressed:
+                    isLoading
+                        ? null
+                        : () async {
+                          final format = await _selectInternalReaderFormat(
+                            context,
+                            localizations,
+                            book,
+                          );
+                          if (format != null && context.mounted) {
+                            _requestInternalReader(context, book, format);
+                          }
+                        },
+              ),
+            )
+            : DownloadToDeviceWidget(
+              book: book,
+              isLoading: isLoading,
+              builder: primaryTile,
+            );
+
+    // Candidates for the labelled row, in the user's configured order.
+    final secondary = <Widget>[];
+    final usedKeys = <String>{};
+    // Send to e-reader has no entry in the configurable list; keep a slot
+    // for it so it is always reachable when enabled.
+    final showSend = settingsState.showSendToEReaderButton;
+    final maxOthers = showSend ? 2 : 3;
+    for (final key in settingsState.bookActionsOrder) {
+      if (secondary.length == maxOthers) break;
+      final action = BookDetailsAction.values.where((a) => a.key == key);
+      if (action.isEmpty || !allowed(action.first)) continue;
+      switch (action.first) {
+        case BookDetailsAction.downloadToDevice when readInApp:
+          secondary.add(
+            DownloadToDeviceWidget(
+              book: book,
+              isLoading: isLoading,
+              builder: tile,
+            ),
+          );
+        case BookDetailsAction.addToShelf:
+          secondary.add(
+            AddToShelfWidget(book: book, isLoading: isLoading, builder: tile),
+          );
+        // "Read now" users open books in their external reader first.
+        case BookDetailsAction.openInReader
+            when settingsState.showReadNowButton:
+          secondary.add(
+            ActionTile(
+              BarAction(
+                icon: Icons.open_in_new_rounded,
+                label: localizations.openExternally,
+                progress:
+                    state.openInReaderState == OpenInReaderState.loading
+                        ? -1
+                        : null,
+                onPressed:
+                    isLoading
+                        ? null
+                        : () => _triggerExternalReader(context, localizations),
+              ),
+            ),
+          );
+        default:
+          continue;
+      }
+      usedKeys.add(key);
+    }
+    if (showSend) {
+      secondary.insert(
+        secondary.isEmpty ? 0 : 1,
+        SendToEreaderWidget(book: book, isLoading: isLoading, builder: tile),
+      );
+    }
+
+    final overflow = <BarAction>[
+      for (final key in settingsState.bookActionsOrder)
+        if (!usedKeys.contains(key))
+          ...switch (BookDetailsAction.values.where((a) => a.key == key)) {
+            final match when match.isNotEmpty && allowed(match.first) =>
+              switch (match.first) {
+                BookDetailsAction.openInReader => [
+                  BarAction(
+                    icon: Icons.open_in_new_rounded,
+                    label: localizations.openExternally,
+                    onPressed:
+                        () => _triggerExternalReader(context, localizations),
+                  ),
+                ],
+                BookDetailsAction.editMetadata => [
+                  BarAction(
+                    icon: Icons.edit_outlined,
+                    label: localizations.editBookMetadata,
+                    onPressed:
+                        () => EditBookMetadataWidget.open(
+                          context,
+                          book: book,
+                          bookViewModel:
+                              state.bookViewModel ?? widget.bookViewModel,
+                        ),
+                  ),
+                ],
+                BookDetailsAction.openInBrowser => [
+                  BarAction(
+                    icon: Icons.open_in_browser_rounded,
+                    label: localizations.openBookInBrowser,
+                    onPressed: () => bloc.add(const OpenBookInBrowser()),
+                  ),
+                ],
+                BookDetailsAction.deleteBook => [
+                  BarAction(
+                    icon: Icons.delete_outline_rounded,
+                    label: localizations.deleteBook,
+                    isDestructive: true,
+                    onPressed:
+                        () => _confirmDelete(context, localizations, book),
+                  ),
+                ],
+                _ => const <BarAction>[],
+              },
+            _ => const <BarAction>[],
+          },
+    ];
+
+    return ActionBar(
+      primary: primary,
+      secondary: secondary,
+      overflow: overflow,
+    );
+  }
+
+  Future<void> _confirmDelete(
+    BuildContext context,
+    AppLocalizations localizations,
+    BookDetailsModel book,
+  ) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder:
+          (dialog) => AlertDialog(
+            title: Text(localizations.deleteBook),
+            content: Text(localizations.deleteBookConfirmation),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialog).pop(false),
+                child: Text(localizations.cancel),
+              ),
+              AppDialogButton.destructive(
+                onPressed: () => Navigator.of(dialog).pop(true),
+                label: localizations.delete,
+              ),
+            ],
+          ),
+    );
+    if (confirm == true && context.mounted) {
+      context.read<BookDetailsBloc>().add(DeleteBook(book.id));
+    }
   }
 
   /// Shows up only once a synced position is actually there, so a library
@@ -1790,18 +1738,21 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
             ),
             const SizedBox(width: 8),
           ],
-          SizedBox(
-            width: 80,
-            child: Text(
-              '$label:',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.secondary,
-              ),
-            ),
-          ),
+          // Label above value: fits long translations and large text.
           Expanded(
-            child: Text(value, style: Theme.of(context).textTheme.bodyMedium),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(value, style: Theme.of(context).textTheme.bodyMedium),
+              ],
+            ),
           ),
         ],
       ),
@@ -1833,57 +1784,30 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
     return '${(sizeInBytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 
-  Widget _buildCoverImage(BuildContext context, int bookId, String? coverUrl) {
-    return SizedBox(
-      //height: 350,
-      child: BookCoverWidget(bookId: bookId, coverUrl: coverUrl),
-    );
-  }
-
+  /// Tags open the Library filtered to that tag.
   Widget _buildTags(
     BuildContext context,
     List<String> tags,
     List<TagModel> tagModels,
   ) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children:
-            tags.map((tag) {
-              return Padding(
-                padding: const EdgeInsets.only(right: 8.0),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(8.0),
-                  // Since the book information does not contain the tag IDs, the navigation
-                  // to the tag details page is currently disabled.
-                  // onTap: () {
-                  //   TagModel? tagModel = tagModels.firstWhere(
-                  //     (tm) => tm.name == tag,
-                  //     orElse: () => TagModel(id: 0, name: tag),
-                  //   );
-                  //   Navigator.of(context).push(
-                  //     AppRoute.page(
-                  //       DiscoverDetailsPage(
-                  //         title: tag,
-                  //         categoryType: CategoryType.category,
-                  //         fullPath: "/opds/category/${tagModel.id}",
-                  //       ),
-                  //     ),
-                  //   );
-                  // },
-                  child: Chip(
-                    label: Text(tag),
-                    backgroundColor:
-                        Theme.of(context).colorScheme.secondaryContainer,
-                    labelStyle: TextStyle(
-                      color: Theme.of(context).colorScheme.onSecondaryContainer,
-                    ),
-                    visualDensity: VisualDensity.compact,
-                  ),
-                ),
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final tag in tags)
+          ActionChip(
+            label: Text(tag),
+            onPressed: () {
+              context.read<BookViewBloc>().add(
+                SearchBooks(tag, scope: SearchScope.tag),
               );
-            }).toList(),
-      ),
+              context.read<HomePageBloc>().add(
+                const SelectDestination(AppDestination.library),
+              );
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            },
+          ),
+      ],
     );
   }
 

@@ -3,6 +3,7 @@ import 'package:calibre_web_companion/features/book_details/data/models/custom_c
 import 'package:calibre_web_companion/features/book_details/data/models/form_metadata_model.dart';
 import 'package:calibre_web_companion/features/book_details/data/models/tag_model.dart';
 import 'package:calibre_web_companion/features/book_view/data/models/book_view_model.dart';
+import 'package:flutter/foundation.dart';
 
 class BookDetailsModel extends BookViewModel {
   final FormatMetadata formatMetadata;
@@ -167,9 +168,21 @@ class BookDetailsModel extends BookViewModel {
     );
   }
 
+  /// Plain text from a Calibre HTML description, keeping its paragraphs:
+  /// block ends and `<br>` become line breaks before tags are removed.
+  @visibleForTesting
+  static String removeHtmlTags(String htmlString) =>
+      _removeHtmlTags(htmlString);
+
   static String _removeHtmlTags(String htmlString) {
+    final breaks = htmlString
+        .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
+        .replaceAll(
+          RegExp(r'</(p|div|li|h[1-6])>', caseSensitive: false),
+          '\n\n',
+        );
     final RegExp exp = RegExp(r'<[^>]*>', multiLine: true, caseSensitive: true);
-    String parsedString = htmlString.replaceAll(exp, '');
+    String parsedString = breaks.replaceAll(exp, '');
 
     parsedString = parsedString
         .replaceAll('&nbsp;', ' ')
@@ -178,7 +191,10 @@ class BookDetailsModel extends BookViewModel {
         .replaceAll('&gt;', '>')
         .replaceAll('&quot;', '"');
 
-    return parsedString.trim();
+    return parsedString
+        .replaceAll(RegExp(r'[ \t]+\n'), '\n')
+        .replaceAll(RegExp(r'\n{3,}'), '\n\n')
+        .trim();
   }
 
   @override

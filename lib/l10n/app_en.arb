@@ -794,5 +794,11 @@
   "discardChangesTitle": "Discard your changes?",
   "discardChangesMessage": "The edits to this book haven't been saved.",
   "discard": "Discard",
-  "keepEditing": "Keep editing"
+  "keepEditing": "Keep editing",
+  "readToggle": "Read",
+  "archivedToggle": "Archived",
+  "showMore": "More",
+  "showLess": "Less",
+  "openExternally": "Open in another app",
+  "read": "Read"
 }
