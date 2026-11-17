@@ -1,5 +1,6 @@
 import 'package:calibre_web_companion/core/navigation/app_route.dart';
 import 'package:calibre_web_companion/core/services/snackbar.dart';
+import 'package:calibre_web_companion/core/utils/error_text.dart';
 import 'package:calibre_web_companion/features/book_details/presentation/pages/book_details_page.dart';
 import 'package:calibre_web_companion/features/book_view/bloc/book_view_bloc.dart';
 import 'package:calibre_web_companion/features/book_view/data/models/book_view_model.dart';
@@ -65,22 +66,36 @@ class ShelfDetailsPage extends StatelessWidget {
                   (context, _) =>
                       context.read<ShelfDetailsBloc>().add(_reload()),
               child: BlocConsumer<ShelfDetailsBloc, ShelfDetailsState>(
+                listenWhen:
+                    (previous, current) =>
+                        previous.action != current.action ||
+                        previous.status != current.status,
                 listener: (context, state) {
-                  if (state.actionDetailsStatus ==
-                          ShelfDetailsActionStatus.success &&
-                      state.actionMessage?.contains('removed') == true) {
-                    // Reload so the removed book leaves the list.
-                    context.read<ShelfDetailsBloc>().add(_reload());
-                  }
-                  if (state.actionDetailsStatus ==
-                      ShelfDetailsActionStatus.success) {
-                    if (state.actionMessage?.contains('deleted') == true) {
+                  final l10n = AppLocalizations.of(context)!;
+                  switch (state.action) {
+                    case ShelfAction.bookRemoved:
+                      // Reload so the removed book leaves the list.
+                      context.read<ShelfDetailsBloc>().add(_reload());
+                      context.showSnackBar(l10n.shelfBookRemoved);
+                    case ShelfAction.edited:
+                      context.showSnackBar(l10n.shelfEditedMessage);
+                    case ShelfAction.deleted:
                       Navigator.of(context).pop();
-                    }
-                    context.showSnackBar(state.actionMessage!, isError: false);
-                  } else if (state.actionDetailsStatus ==
-                      ShelfDetailsActionStatus.error) {
-                    context.showSnackBar(state.actionMessage!, isError: true);
+                      context.showSnackBar(l10n.shelfDeletedMessage);
+                    case ShelfAction.bookRemoveFailed:
+                      context.showSnackBar(
+                        l10n.shelfBookRemoveFailed,
+                        isError: true,
+                      );
+                    case ShelfAction.editFailed:
+                      context.showSnackBar(l10n.shelfEditFailed, isError: true);
+                    case ShelfAction.deleteFailed:
+                      context.showSnackBar(
+                        l10n.shelfDeleteFailed,
+                        isError: true,
+                      );
+                    case null:
+                      break;
                   }
 
                   if (state.status == ShelfDetailsStatus.error) {
@@ -414,7 +429,7 @@ class ShelfDetailsPage extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 8),
-                Text(state.errorMessage ?? localizations.unknownError),
+                Text(humanizeError(state.errorMessage, localizations)),
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed:

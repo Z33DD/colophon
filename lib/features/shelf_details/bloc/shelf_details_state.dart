@@ -6,12 +6,25 @@ enum ShelfDetailsStatus { initial, loading, loaded, error }
 
 enum ShelfDetailsActionStatus { initial, loading, success, error }
 
+/// Outcome of a shelf action.
+enum ShelfAction {
+  bookRemoved,
+  bookRemoveFailed,
+  edited,
+  editFailed,
+  deleted,
+  deleteFailed,
+}
+
 class ShelfDetailsState extends Equatable {
   final ShelfDetailsStatus status;
   final ShelfDetailsModel? currentShelfDetail;
   final String? errorMessage;
   final ShelfDetailsActionStatus actionDetailsStatus;
-  final String? actionMessage;
+
+  /// Which action just finished, so the page can say so in the user's
+  /// language. Replaces matching English text such as "deleted".
+  final ShelfAction? action;
   final BookViewModel? bookDetails;
   final String? loadingBookId;
   final bool isOpds;
@@ -26,7 +39,7 @@ class ShelfDetailsState extends Equatable {
     this.currentShelfDetail,
     this.errorMessage,
     this.actionDetailsStatus = ShelfDetailsActionStatus.initial,
-    this.actionMessage,
+    this.action,
     this.bookDetails,
     this.loadingBookId,
     this.isOpds = false,
@@ -42,7 +55,7 @@ class ShelfDetailsState extends Equatable {
     ShelfDetailsModel? currentShelfDetail,
     String? errorMessage,
     ShelfDetailsActionStatus? actionDetailsStatus,
-    String? actionMessage,
+    ShelfAction? action,
     BookViewModel? bookDetails,
     String? loadingBookId,
     bool? isOpds,
@@ -57,7 +70,7 @@ class ShelfDetailsState extends Equatable {
       currentShelfDetail: currentShelfDetail ?? this.currentShelfDetail,
       errorMessage: errorMessage,
       actionDetailsStatus: actionDetailsStatus ?? this.actionDetailsStatus,
-      actionMessage: actionMessage,
+      action: action,
       bookDetails: bookDetails ?? this.bookDetails,
       loadingBookId: loadingBookId ?? this.loadingBookId,
       isOpds: isOpds ?? this.isOpds,
@@ -75,7 +88,7 @@ class ShelfDetailsState extends Equatable {
     currentShelfDetail,
     errorMessage,
     actionDetailsStatus,
-    actionMessage,
+    action,
     bookDetails,
     loadingBookId,
     isOpds,

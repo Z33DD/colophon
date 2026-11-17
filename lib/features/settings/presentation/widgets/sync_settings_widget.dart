@@ -1,3 +1,4 @@
+import 'package:calibre_web_companion/core/utils/error_text.dart';
 import 'package:calibre_web_companion/features/settings/presentation/widgets/sync_filter_bottom_sheet.dart';
 import 'package:calibre_web_companion/features/sync/bloc/sync_bloc.dart';
 import 'package:calibre_web_companion/features/sync/bloc/sync_event.dart';
@@ -42,9 +43,20 @@ class _SyncSettingsWidgetState extends State<SyncSettingsWidget> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        state.errorMessage ?? localization.syncError,
+                        humanizeError(
+                          state.errorMessage ?? localization.syncError,
+                          localization,
+                        ),
                       ),
                       backgroundColor: Theme.of(context).colorScheme.error,
+                    ),
+                  );
+                } else if (state.status == SyncStatus.needsDownloadFolder) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        localization.pleaseSetDefaultDownloadFolderFirst,
+                      ),
                     ),
                   );
                 } else if (state.status == SyncStatus.nothingToSync) {
@@ -97,6 +109,7 @@ class _SyncSettingsWidgetState extends State<SyncSettingsWidget> {
                     return _buildLiveQueueView(context, localization, state);
                   case SyncStatus.completed:
                   case SyncStatus.nothingToSync:
+                  case SyncStatus.needsDownloadFolder:
                   case SyncStatus.error:
                   case SyncStatus.canceled:
                   case SyncStatus.initial:

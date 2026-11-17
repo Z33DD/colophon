@@ -885,5 +885,18 @@
   "hidePassword": "Hide password",
   "currentAccount": "Current account",
   "conditionAnd": "AND",
-  "conditionOr": "OR"
+  "conditionOr": "OR",
+  "errorUnreachable": "Couldn't reach your server. Check your connection and try again.",
+  "errorUnauthorized": "Your server refused the sign-in. Check your username and password.",
+  "errorForbidden": "Your account isn't allowed to do this on the server.",
+  "errorNotFound": "The server couldn't find this item. It may have been removed.",
+  "errorServer": "Your server had a problem handling this. Try again later.",
+  "errorUnexpected": "Something went wrong. Try again.",
+  "errorSelectingImage": "Couldn't use that image.",
+  "shelfBookRemoved": "Removed from this shelf",
+  "shelfBookRemoveFailed": "Couldn't remove the book from this shelf",
+  "shelfEditedMessage": "Shelf updated",
+  "shelfEditFailed": "Couldn't update the shelf",
+  "shelfDeletedMessage": "Shelf deleted",
+  "shelfDeleteFailed": "Couldn't delete the shelf"
 }

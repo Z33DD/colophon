@@ -113,16 +113,16 @@ class ShelfDetailsBloc extends Bloc<ShelfDetailsEvent, ShelfDetailsState> {
         emit(
           state.copyWith(
             actionDetailsStatus: ShelfDetailsActionStatus.success,
-            actionMessage: 'Book removed from shelf successfully',
+            action: ShelfAction.bookRemoved,
           ),
         );
 
-        shelfViewBloc.add(RemoveShelfFromState(event.shelfId));
+        // Only the book left the shelf; the shelf itself stays listed.
       } else {
         emit(
           state.copyWith(
             actionDetailsStatus: ShelfDetailsActionStatus.error,
-            actionMessage: 'Failed to remove book from shelf',
+            action: ShelfAction.bookRemoveFailed,
           ),
         );
       }
@@ -130,7 +130,7 @@ class ShelfDetailsBloc extends Bloc<ShelfDetailsEvent, ShelfDetailsState> {
       emit(
         state.copyWith(
           actionDetailsStatus: ShelfDetailsActionStatus.error,
-          actionMessage: e.toString(),
+          action: ShelfAction.bookRemoveFailed,
         ),
       );
       return;
@@ -141,12 +141,7 @@ class ShelfDetailsBloc extends Bloc<ShelfDetailsEvent, ShelfDetailsState> {
     EditShelf event,
     Emitter<ShelfDetailsState> emit,
   ) async {
-    emit(
-      state.copyWith(
-        actionDetailsStatus: ShelfDetailsActionStatus.loading,
-        actionMessage: null,
-      ),
-    );
+    emit(state.copyWith(actionDetailsStatus: ShelfDetailsActionStatus.loading));
 
     try {
       final success = await repository.editShelf(
@@ -162,7 +157,7 @@ class ShelfDetailsBloc extends Bloc<ShelfDetailsEvent, ShelfDetailsState> {
               isPublic: event.isPublic,
             ),
             actionDetailsStatus: ShelfDetailsActionStatus.success,
-            actionMessage: 'Shelf edited successfully',
+            action: ShelfAction.edited,
           ),
         );
 
@@ -177,7 +172,7 @@ class ShelfDetailsBloc extends Bloc<ShelfDetailsEvent, ShelfDetailsState> {
         emit(
           state.copyWith(
             actionDetailsStatus: ShelfDetailsActionStatus.error,
-            actionMessage: 'Failed to edit shelf',
+            action: ShelfAction.editFailed,
           ),
         );
       }
@@ -185,7 +180,7 @@ class ShelfDetailsBloc extends Bloc<ShelfDetailsEvent, ShelfDetailsState> {
       emit(
         state.copyWith(
           actionDetailsStatus: ShelfDetailsActionStatus.error,
-          actionMessage: e.toString(),
+          action: ShelfAction.editFailed,
         ),
       );
       return;
@@ -196,12 +191,7 @@ class ShelfDetailsBloc extends Bloc<ShelfDetailsEvent, ShelfDetailsState> {
     DeleteShelf event,
     Emitter<ShelfDetailsState> emit,
   ) async {
-    emit(
-      state.copyWith(
-        actionDetailsStatus: ShelfDetailsActionStatus.loading,
-        actionMessage: null,
-      ),
-    );
+    emit(state.copyWith(actionDetailsStatus: ShelfDetailsActionStatus.loading));
 
     try {
       final success = await repository.deleteShelf(event.shelfId);
@@ -210,14 +200,14 @@ class ShelfDetailsBloc extends Bloc<ShelfDetailsEvent, ShelfDetailsState> {
         emit(
           state.copyWith(
             actionDetailsStatus: ShelfDetailsActionStatus.success,
-            actionMessage: 'Shelf deleted successfully',
+            action: ShelfAction.deleted,
           ),
         );
       } else {
         emit(
           state.copyWith(
             actionDetailsStatus: ShelfDetailsActionStatus.error,
-            actionMessage: 'Failed to delete shelf',
+            action: ShelfAction.deleteFailed,
           ),
         );
       }
@@ -225,7 +215,7 @@ class ShelfDetailsBloc extends Bloc<ShelfDetailsEvent, ShelfDetailsState> {
       emit(
         state.copyWith(
           actionDetailsStatus: ShelfDetailsActionStatus.error,
-          actionMessage: e.toString(),
+          action: ShelfAction.deleteFailed,
         ),
       );
       return;

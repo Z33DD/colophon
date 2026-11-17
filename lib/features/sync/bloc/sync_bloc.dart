@@ -52,12 +52,7 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
     final settings = await settingsRepository.getSettings();
 
     if (settings.defaultDownloadPath.isEmpty) {
-      emit(
-        state.copyWith(
-          status: SyncStatus.error,
-          errorMessage: 'Please configure a download folder in Settings first.',
-        ),
-      );
+      emit(state.copyWith(status: SyncStatus.needsDownloadFolder));
       return;
     }
 

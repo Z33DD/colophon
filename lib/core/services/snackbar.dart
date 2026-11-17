@@ -1,4 +1,6 @@
+import 'package:calibre_web_companion/core/utils/error_text.dart';
 import 'package:calibre_web_companion/core/utils/network_error.dart';
+import 'package:calibre_web_companion/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
 extension SnackBarExtension on BuildContext {
@@ -17,6 +19,10 @@ extension SnackBarExtension on BuildContext {
     VoidCallback? onAction,
   }) {
     if (isError && isNetworkErrorMessage(message)) return;
+
+    // Error text often comes straight from e.toString(); make it readable.
+    final l10n = AppLocalizations.of(this);
+    if (isError && l10n != null) message = humanizeError(message, l10n);
 
     final scheme = Theme.of(this).colorScheme;
     final hasAction = actionLabel != null && onAction != null;

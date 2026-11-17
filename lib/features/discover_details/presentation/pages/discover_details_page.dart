@@ -1,5 +1,6 @@
 import 'package:calibre_web_companion/core/navigation/app_route.dart';
 import 'package:calibre_web_companion/core/services/snackbar.dart';
+import 'package:calibre_web_companion/core/utils/error_text.dart';
 import 'package:calibre_web_companion/features/book_details/data/models/book_details_model.dart';
 import 'package:calibre_web_companion/features/book_details/presentation/pages/book_details_page.dart';
 import 'package:calibre_web_companion/features/book_view/bloc/book_view_bloc.dart';
@@ -559,7 +560,7 @@ class DiscoverDetailsPage extends StatelessWidget {
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 8),
-          Text(state.errorMessage ?? localizations.unknownError),
+          Text(humanizeError(state.errorMessage, localizations)),
         ],
       ),
     );

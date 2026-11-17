@@ -705,9 +705,11 @@ class _EditBookMetadataDialogState extends State<_EditBookMetadataDialog> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error selecting image: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.errorSelectingImage),
+          ),
+        );
       }
     }
   }

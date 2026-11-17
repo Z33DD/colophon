@@ -1,5 +1,6 @@
 import 'package:calibre_web_companion/core/navigation/app_route.dart';
 import 'package:calibre_web_companion/core/services/snackbar.dart';
+import 'package:calibre_web_companion/core/utils/error_text.dart';
 import 'package:calibre_web_companion/features/shelf_details/bloc/shelf_details_bloc.dart';
 import 'package:calibre_web_companion/features/shelf_details/presentation/pages/shelf_details_page.dart';
 import 'package:calibre_web_companion/features/shelf_view.dart/bloc/shelf_view_bloc.dart';
@@ -320,7 +321,7 @@ class ShelfViewPage extends StatelessWidget {
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 8),
-          Text(state.errorMessage ?? localizations.unknownError),
+          Text(humanizeError(state.errorMessage, localizations)),
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed:

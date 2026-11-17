@@ -1,3 +1,4 @@
+import 'package:calibre_web_companion/core/utils/error_text.dart';
 import 'package:calibre_web_companion/features/download_service/bloc/download_service_bloc.dart';
 import 'package:calibre_web_companion/features/download_service/bloc/download_service_event.dart';
 import 'package:calibre_web_companion/features/download_service/bloc/download_service_state.dart';
@@ -60,7 +61,10 @@ class DownloadsTabWidget extends StatelessWidget {
     if (state.isLoading) {
       return _buildBookCardSkeletons(context);
     } else if (state.errorMessage != null) {
-      return _buildErrorMessage(context, state.errorMessage!);
+      return _buildErrorMessage(
+        context,
+        humanizeError(state.errorMessage, localizations),
+      );
     } else if (state.books.isNotEmpty) {
       return _buildBookList(context, localizations, state.books);
     } else {

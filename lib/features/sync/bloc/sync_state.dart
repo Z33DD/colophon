@@ -15,6 +15,9 @@ enum SyncStatus {
 
   /// The scan finished but no book matched the sync filter.
   nothingToSync,
+
+  /// Sync needs a default download folder first.
+  needsDownloadFolder,
 }
 
 /// Why sync skipped a book instead of downloading it. Shown per item so a
