@@ -4,10 +4,12 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
+import 'package:calibre_web_companion/core/exceptions/cancellation_exception.dart';
 import 'package:calibre_web_companion/core/services/api_service.dart';
 import 'package:calibre_web_companion/core/services/tag_service.dart';
 import 'package:calibre_web_companion/core/utils/book_drop.dart';
 import 'package:calibre_web_companion/core/utils/book_mime_types.dart';
+import 'package:calibre_web_companion/core/utils/cancellable_download.dart';
 import 'package:calibre_web_companion/core/utils/document_bytes.dart';
 import 'package:calibre_web_companion/core/utils/file_name_utils.dart';
 import 'package:calibre_web_companion/core/utils/pubdate.dart';
@@ -325,6 +327,7 @@ class BookDetailsRemoteDatasource {
     required String pathTemplate,
     String format = 'epub',
     Function(int)? progressCallback,
+    DownloadCancelToken? cancelToken,
   }) async {
     return downloadBookToPath(
       book: book,
@@ -333,6 +336,7 @@ class BookDetailsRemoteDatasource {
       pathTemplate: pathTemplate,
       format: format,
       progressCallback: progressCallback,
+      cancelToken: cancelToken,
     );
   }
 
@@ -892,6 +896,7 @@ class BookDetailsRemoteDatasource {
     Function(int)? progressCallback,
     bool reuseExistingFile = true,
     bool deleteOnError = true,
+    DownloadCancelToken? cancelToken,
   }) async {
     try {
       logger.i(
@@ -1091,7 +1096,10 @@ class BookDetailsRemoteDatasource {
           response,
           tempFile,
           progressCallback,
+          cancelToken: cancelToken,
         );
+        // Cancelled during the copy window: don't create the SAF file.
+        cancelToken?.throwIfCancelled();
         createdUri = await copyFileToSafDirectory(
           tempFile,
           targetDir,
@@ -1108,6 +1116,10 @@ class BookDetailsRemoteDatasource {
 
       logger.i('Download complete: $createdUri with $receivedBytes bytes');
       return createdUri;
+    } on CancellationException {
+      // Keep the type so the UI shows "cancelled", not a failure.
+      logger.i('Download of "${book.title}" cancelled');
+      rethrow;
     } catch (e) {
       logger.e('Exception while downloading book: $e');
       throw Exception('Error downloading book: $e');
@@ -1401,30 +1413,21 @@ class BookDetailsRemoteDatasource {
   Future<int> _writeStreamToFile(
     StreamedResponse response,
     File file,
-    Function(int)? progressCallback,
-  ) async {
-    final contentLength = response.contentLength ?? -1;
-    final sink = file.openWrite();
-    int received = 0;
-    try {
-      await for (final chunk in response.stream) {
-        sink.add(chunk);
-        received += chunk.length;
-        if (contentLength > 0 && progressCallback != null) {
-          progressCallback((received / contentLength * 100).round());
-        }
-      }
-      await sink.flush();
-    } finally {
-      await sink.close();
-    }
-    return received;
-  }
+    Function(int)? progressCallback, {
+    DownloadCancelToken? cancelToken,
+  }) => writeStreamToFile(
+    response.stream,
+    file,
+    contentLength: response.contentLength ?? -1,
+    onProgress: progressCallback == null ? null : (p) => progressCallback(p),
+    cancelToken: cancelToken,
+  );
 
   Future<String> downloadBookToDevice(
     BookDetailsModel book, {
     String format = 'epub',
     Function(int)? progressCallback,
+    DownloadCancelToken? cancelToken,
   }) async {
     logger.i('Downloading "${book.title}" to app sandbox, format: $format');
     final response = await getDownloadStream(
@@ -1438,12 +1441,13 @@ class BookDetailsRemoteDatasource {
         book.title.replaceAll(RegExp(r'[\\/:*?"<>|.]'), '').trim();
     final fileName = '${safeTitle.isEmpty ? 'book' : safeTitle}.$format';
     final file = File('${dir.path}/$fileName');
-    try {
-      await _writeStreamToFile(response, file, progressCallback);
-    } catch (_) {
-      if (file.existsSync()) await file.delete();
-      rethrow;
-    }
+    // writeStreamToFile deletes the partial file itself on cancel/error.
+    await _writeStreamToFile(
+      response,
+      file,
+      progressCallback,
+      cancelToken: cancelToken,
+    );
 
     logger.i('Saved book to ${file.path}');
     return file.path;

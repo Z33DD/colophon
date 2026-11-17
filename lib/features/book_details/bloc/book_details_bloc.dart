@@ -5,6 +5,7 @@ import 'package:calibre_web_companion/core/exceptions/cancellation_exception.dar
 import 'package:calibre_web_companion/core/services/download_manager.dart';
 import 'package:calibre_web_companion/core/services/reader_cache_service.dart';
 import 'package:calibre_web_companion/core/services/widget_service.dart';
+import 'package:calibre_web_companion/core/utils/cancellable_download.dart';
 import 'package:calibre_web_companion/core/utils/document_bytes.dart';
 import 'package:calibre_web_companion/features/book_details/bloc/book_details_event.dart';
 import 'package:calibre_web_companion/features/book_details/bloc/book_details_state.dart';
@@ -25,6 +26,9 @@ class BookDetailsBloc extends Bloc<BookDetailsEvent, BookDetailsState> {
   final DownloadManager downloadManager;
   final WidgetService widgetService;
   final Logger logger;
+
+  /// Token for the download in flight, so CancelDownload can stop it.
+  DownloadCancelToken? _activeDownload;
 
   BookDetailsBloc({
     required this.repository,
@@ -293,6 +297,10 @@ class BookDetailsBloc extends Bloc<BookDetailsEvent, BookDetailsState> {
       ),
     );
 
+    _activeDownload?.cancel();
+    final cancelToken = DownloadCancelToken();
+    _activeDownload = cancelToken;
+
     try {
       if (state.bookDetails == null) {
         throw Exception('Book details not available');
@@ -305,6 +313,7 @@ class BookDetailsBloc extends Bloc<BookDetailsEvent, BookDetailsState> {
         filePath = await repository.downloadBookToDevice(
           state.bookDetails!,
           format: event.format,
+          cancelToken: cancelToken,
           progressCallback: (progress) {
             emit(state.copyWith(downloadProgress: progress));
           },
@@ -316,11 +325,13 @@ class BookDetailsBloc extends Bloc<BookDetailsEvent, BookDetailsState> {
           schema,
           pathTemplate: event.pathTemplate,
           format: event.format,
+          cancelToken: cancelToken,
           progressCallback: (progress) {
             emit(state.copyWith(downloadProgress: progress));
           },
         );
       }
+      cancelToken.throwIfCancelled();
 
       final uuid = state.bookViewModel?.uuid ?? state.bookDetails!.uuid;
       await downloadManager.registerDownload(uuid, filePath);
@@ -360,6 +371,9 @@ class BookDetailsBloc extends Bloc<BookDetailsEvent, BookDetailsState> {
   }
 
   void _onCancelDownload(CancelDownload event, Emitter<BookDetailsState> emit) {
+    // Stops the transfer; _onDownloadBook then emits `canceled` and skips
+    // registering the book as downloaded.
+    _activeDownload?.cancel();
     emit(state.copyWith(downloadState: DownloadState.canceled));
   }
 
