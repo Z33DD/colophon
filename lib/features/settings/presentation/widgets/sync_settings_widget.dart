@@ -47,18 +47,31 @@ class _SyncSettingsWidgetState extends State<SyncSettingsWidget> {
                       backgroundColor: Theme.of(context).colorScheme.error,
                     ),
                   );
+                } else if (state.status == SyncStatus.nothingToSync) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(localization.syncNoBooksMatched)),
+                  );
                 } else if (state.status == SyncStatus.completed) {
-                  final errorCount =
-                      state.queue
-                          .where((item) => item.status == 'error')
-                          .length;
+                  int count(String status) =>
+                      state.queue.where((item) => item.status == status).length;
+                  final errorCount = count(SyncQueueItem.error);
+                  final skippedCount = count(SyncQueueItem.skipped);
 
-                  if (errorCount > 0) {
+                  if (errorCount > 0 || skippedCount > 0) {
+                    final message =
+                        errorCount == 0
+                            ? localization.syncFinishedWithXSkipped(
+                              skippedCount,
+                            )
+                            : skippedCount == 0
+                            ? localization.syncFinishedWithXErrors(errorCount)
+                            : localization.syncFinishedWithErrorsAndSkipped(
+                              errorCount,
+                              skippedCount,
+                            );
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(
-                          localization.syncFinishedWithXErrors(errorCount),
-                        ),
+                        content: Text(message),
                         backgroundColor: Theme.of(context).colorScheme.error,
                         duration: const Duration(seconds: 5),
                       ),
@@ -83,6 +96,7 @@ class _SyncSettingsWidgetState extends State<SyncSettingsWidget> {
                   case SyncStatus.paused:
                     return _buildLiveQueueView(context, localization, state);
                   case SyncStatus.completed:
+                  case SyncStatus.nothingToSync:
                   case SyncStatus.error:
                   case SyncStatus.canceled:
                   case SyncStatus.initial:
@@ -331,6 +345,9 @@ class _SyncSettingsWidgetState extends State<SyncSettingsWidget> {
       case 'error':
         icon = Icons.error_outline;
         color = StatusColors.error(context);
+      case SyncQueueItem.skipped:
+        icon = Icons.remove_circle_outline;
+        color = StatusColors.neutral(context);
       case 'pending':
       default:
         icon = Icons.hourglass_empty;
@@ -358,6 +375,15 @@ class _SyncSettingsWidgetState extends State<SyncSettingsWidget> {
                   : FontWeight.normal,
         ),
       ),
+      subtitle: switch (item.skipReason) {
+        SyncSkipReason.noMatchingFormat => Text(
+          AppLocalizations.of(context)!.syncSkippedNoMatchingFormat,
+        ),
+        SyncSkipReason.noFormats => Text(
+          AppLocalizations.of(context)!.syncSkippedNoFormats,
+        ),
+        null => null,
+      },
       trailing: trailing,
     );
   }

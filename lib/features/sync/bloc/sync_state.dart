@@ -12,20 +12,46 @@ enum SyncStatus {
   completed,
   canceled,
   error,
+
+  /// The scan finished but no book matched the sync filter.
+  nothingToSync,
 }
 
+/// Why sync skipped a book instead of downloading it. Shown per item so a
+/// skip is not mistaken for a failure.
+enum SyncSkipReason { noMatchingFormat, noFormats }
+
 class SyncQueueItem extends Equatable {
+  static const pending = 'pending';
+  static const downloading = 'downloading';
+  static const done = 'done';
+  static const error = 'error';
+  static const skipped = 'skipped';
+
   final BookViewModel book;
+
+  /// One of [pending], [downloading], [done], [error], [skipped].
   final String status;
 
-  const SyncQueueItem({required this.book, this.status = 'pending'});
+  /// Set when [status] is [skipped].
+  final SyncSkipReason? skipReason;
 
-  SyncQueueItem copyWith({String? status}) {
-    return SyncQueueItem(book: book, status: status ?? this.status);
+  const SyncQueueItem({
+    required this.book,
+    this.status = pending,
+    this.skipReason,
+  });
+
+  SyncQueueItem copyWith({String? status, SyncSkipReason? skipReason}) {
+    return SyncQueueItem(
+      book: book,
+      status: status ?? this.status,
+      skipReason: skipReason ?? this.skipReason,
+    );
   }
 
   @override
-  List<Object?> get props => [book, status];
+  List<Object?> get props => [book, status, skipReason];
 }
 
 class SyncState extends Equatable {

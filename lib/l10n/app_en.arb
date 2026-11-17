@@ -652,5 +652,27 @@
   "metadataStatusRateLimited": "Rate limited",
   "metadataStatusBlocked": "Blocked by the source",
   "metadataStatusMissingKey": "API key missing",
-  "metadataStatusError": "Error"
+  "metadataStatusError": "Error",
+  "syncNoBooksMatched": "No books match the sync filter",
+  "syncFinishedWithXSkipped": "Sync finished, {count} skipped",
+  "syncFinishedWithErrorsAndSkipped": "Sync finished with {errors} errors, {skipped} skipped",
+  "syncSkippedNoMatchingFormat": "Skipped: none of the chosen formats",
+  "syncSkippedNoFormats": "Skipped: the book has no files",
+  "@syncFinishedWithXSkipped": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@syncFinishedWithErrorsAndSkipped": {
+    "placeholders": {
+      "errors": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      }
+    }
+  }
 }

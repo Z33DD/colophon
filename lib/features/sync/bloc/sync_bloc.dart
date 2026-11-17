@@ -10,6 +10,7 @@ import 'package:calibre_web_companion/features/shelf_details/data/repositories/s
 import 'package:calibre_web_companion/features/sync/bloc/sync_event.dart';
 import 'package:calibre_web_companion/features/sync/bloc/sync_state.dart';
 import 'package:calibre_web_companion/features/sync/data/models/sync_filter.dart';
+import 'package:calibre_web_companion/features/sync/data/models/sync_format_choice.dart';
 import 'package:docman/docman.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
@@ -80,12 +81,9 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
       final books = await _fetchAndFilterBooks(event.filter);
 
       if (books.isEmpty) {
-        emit(
-          state.copyWith(
-            status: SyncStatus.idle,
-            errorMessage: 'No books found matching your filters.',
-          ),
-        );
+        // Its own status: the UI only reacts to status changes, and an idle
+        // state with an error message used to be dropped silently.
+        emit(state.copyWith(status: SyncStatus.nothingToSync));
         return;
       }
 
@@ -286,7 +284,8 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
           // formats stay unknown on servers that do not report them, those
           // books are format-checked again before the download
           if (filter.selectedFormats.isNotEmpty && book.formats.isNotEmpty) {
-            if (_pickFormat(book.formats, filter.selectedFormats) == null) {
+            if (chooseSyncFormat(book.formats, filter.selectedFormats).format ==
+                null) {
               skippedByCriteria++;
               return false;
             }
@@ -329,26 +328,6 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
   }
 
   /// First selected format the book actually offers, `null` when it offers none.
-  static String? _pickFormat(
-    List<String> bookFormats,
-    List<String> wantedFormats,
-  ) {
-    final available = bookFormats.map((f) => f.toLowerCase().trim()).toList();
-
-    for (final wanted in wantedFormats) {
-      final format = wanted.toLowerCase().trim();
-      if (available.contains(format)) return wanted;
-    }
-
-    // servers that report formats as e.g. "EPUB (1.2 MB)"
-    for (final wanted in wantedFormats) {
-      final format = wanted.toLowerCase().trim();
-      if (available.any((f) => f.contains(format))) return wanted;
-    }
-
-    return null;
-  }
-
   Future<List<BookViewModel>> _fetchAllBooks() async {
     final List<BookViewModel> allBooks = [];
     int offset = 0;
@@ -471,30 +450,18 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
         );
       }
 
-      String? formatToDownload;
-
-      if (state.filter.selectedFormats.isNotEmpty) {
-        formatToDownload = _pickFormat(
-          bookDetails.formats,
-          state.filter.selectedFormats,
+      final choice = chooseSyncFormat(
+        bookDetails.formats,
+        state.filter.selectedFormats,
+      );
+      if (choice.skipReason != null) {
+        logger.i(
+          'Skipping "${bookDetails.title}" (${choice.skipReason!.name}): '
+          'formats ${bookDetails.formats}, wanted ${state.filter.selectedFormats}',
         );
-
-        if (formatToDownload == null) {
-          logger.i(
-            'Skipping "${bookDetails.title}" - Formats ${bookDetails.formats} do not match ${state.filter.selectedFormats}',
-          );
-
-          throw Exception('Skipped: No matching format found.');
-        }
-      } else {
-        if (bookDetails.formats.contains('EPUB')) {
-          formatToDownload = 'epub';
-        } else if (bookDetails.formats.isNotEmpty) {
-          formatToDownload = bookDetails.formats.first;
-        } else {
-          throw Exception('Skipped: No formats available.');
-        }
+        throw _SyncSkipped(choice.skipReason!);
       }
+      final formatToDownload = choice.format!;
 
       final path = await bookDetailsRepository.downloadBook(
         bookDetails,
@@ -539,23 +506,27 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
           currentProgress: 1.0,
         ),
       );
-    } catch (e) {
-      final msg = e.toString();
-      final isSkip = msg.contains('Skipped:');
-
-      if (isSkip) {
-        logger.d(msg);
-      } else {
-        logger.e('Sync error for ${item.book.title}: $e');
-      }
-
+    } on _SyncSkipped catch (skip) {
       newQueue = List.from(state.queue);
-
-      newQueue[index] = item.copyWith(status: 'error');
+      newQueue[index] = item.copyWith(
+        status: SyncQueueItem.skipped,
+        skipReason: skip.reason,
+      );
+      emit(state.copyWith(queue: newQueue));
+    } catch (e) {
+      logger.e('Sync error for ${item.book.title}: $e');
+      newQueue = List.from(state.queue);
+      newQueue[index] = item.copyWith(status: SyncQueueItem.error);
       emit(state.copyWith(queue: newQueue));
     } finally {
       _isProcessing = false;
       add(ProcessNextSyncItem());
     }
   }
+}
+
+/// Internal signal that a book is skipped on purpose, not failed.
+class _SyncSkipped implements Exception {
+  const _SyncSkipped(this.reason);
+  final SyncSkipReason reason;
 }
