@@ -9,6 +9,7 @@ import 'package:calibre_web_companion/features/book_details/data/models/book_det
 import 'package:calibre_web_companion/features/settings/bloc/settings_bloc.dart';
 import 'package:calibre_web_companion/features/settings/bloc/settings_state.dart';
 import 'package:calibre_web_companion/l10n/app_localizations.dart';
+import 'package:calibre_web_companion/shared/ui/action_bar.dart';
 import 'package:calibre_web_companion/shared/widgets/app_dialog_button.dart';
 import 'package:docman/docman.dart';
 import 'package:flutter/material.dart';
@@ -20,10 +21,15 @@ class SendToEreaderWidget extends StatelessWidget {
   final BookDetailsModel book;
   final bool isLoading;
 
+  /// With a builder, renders only the "Send to e-reader" action in the
+  /// caller's style, regardless of the legacy FAB settings.
+  final BarActionBuilder? builder;
+
   const SendToEreaderWidget({
     super.key,
     required this.book,
     required this.isLoading,
+    this.builder,
   });
 
   @override
@@ -34,6 +40,21 @@ class SendToEreaderWidget extends StatelessWidget {
       builder: (context, bookDetailsState) {
         return BlocBuilder<SettingsBloc, SettingsState>(
           builder: (context, settingsState) {
+            if (builder != null) {
+              return builder!(
+                context,
+                BarAction(
+                  icon: Icons.send_rounded,
+                  label: localizations.sendToEReader,
+                  onPressed:
+                      isLoading
+                          ? null
+                          : () =>
+                              _showSendToReaderDialog(context, localizations),
+                ),
+              );
+            }
+
             final bool showFab = settingsState.showSendToEReaderButton;
             final bool showReadNow = settingsState.showReadNowButton;
 

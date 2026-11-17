@@ -25,6 +25,12 @@ class BarAction {
   final bool isDestructive;
 }
 
+/// Builds an action's button from its current data. Feature widgets that
+/// own a flow (download, add to shelf, send) take one so the action bar can
+/// draw them in its own style.
+typedef BarActionBuilder =
+    Widget Function(BuildContext context, BarAction action);
+
 /// The book's actions in three tiers: one filled primary, up to three
 /// labelled secondaries, and everything else in an overflow menu.
 ///
@@ -38,8 +44,11 @@ class ActionBar extends StatelessWidget {
     this.overflow = const [],
   }) : assert(secondary.length <= 3, 'At most three secondary actions');
 
-  final BarAction primary;
-  final List<BarAction> secondary;
+  /// Usually a [PrimaryActionButton].
+  final Widget primary;
+
+  /// Usually [ActionTile]s.
+  final List<Widget> secondary;
   final List<BarAction> overflow;
 
   @override
@@ -50,14 +59,13 @@ class ActionBar extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _PrimaryButton(action: primary),
+        primary,
         if (secondary.isNotEmpty || overflow.isNotEmpty) ...[
           const SizedBox(height: 8),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              for (final action in secondary)
-                Expanded(child: _SecondaryButton(action: action)),
+              for (final widget in secondary) Expanded(child: widget),
               if (overflow.isNotEmpty)
                 MenuAnchor(
                   alignmentOffset: const Offset(-160, 0),
@@ -79,8 +87,8 @@ class ActionBar extends StatelessWidget {
                       ),
                   ],
                   builder:
-                      (context, controller, _) => _SecondaryButton(
-                        action: BarAction(
+                      (context, controller, _) => ActionTile(
+                        BarAction(
                           icon: Icons.more_horiz_rounded,
                           label: l10n.moreActions,
                           onPressed:
@@ -100,8 +108,9 @@ class ActionBar extends StatelessWidget {
   }
 }
 
-class _PrimaryButton extends StatelessWidget {
-  const _PrimaryButton({required this.action});
+/// The one filled button of an [ActionBar].
+class PrimaryActionButton extends StatelessWidget {
+  const PrimaryActionButton(this.action, {super.key});
   final BarAction action;
 
   @override
@@ -126,8 +135,9 @@ class _PrimaryButton extends StatelessWidget {
   }
 }
 
-class _SecondaryButton extends StatelessWidget {
-  const _SecondaryButton({required this.action, this.compact = false});
+/// A labelled icon button for an [ActionBar]'s secondary row.
+class ActionTile extends StatelessWidget {
+  const ActionTile(this.action, {super.key, this.compact = false});
   final BarAction action;
 
   /// The overflow button: icon only visually, label kept for tooltips and

@@ -80,26 +80,34 @@ void main() {
           Padding(
             padding: const EdgeInsets.all(16),
             child: ActionBar(
-              primary: BarAction(
-                icon: Icons.menu_book,
-                label: 'Lesen',
-                onPressed: () {},
+              primary: PrimaryActionButton(
+                BarAction(
+                  icon: Icons.menu_book,
+                  label: 'Lesen',
+                  onPressed: () {},
+                ),
               ),
               secondary: [
-                BarAction(
-                  icon: Icons.download,
-                  label: 'Herunterladen',
-                  onPressed: () {},
+                ActionTile(
+                  BarAction(
+                    icon: Icons.download,
+                    label: 'Herunterladen',
+                    onPressed: () {},
+                  ),
                 ),
-                BarAction(
-                  icon: Icons.send,
-                  label: 'An E-Reader senden',
-                  onPressed: () {},
+                ActionTile(
+                  BarAction(
+                    icon: Icons.send,
+                    label: 'An E-Reader senden',
+                    onPressed: () {},
+                  ),
                 ),
-                BarAction(
-                  icon: Icons.bookmark_add,
-                  label: 'Zum Regal hinzufügen',
-                  onPressed: () {},
+                ActionTile(
+                  BarAction(
+                    icon: Icons.bookmark_add,
+                    label: 'Zum Regal hinzufügen',
+                    onPressed: () {},
+                  ),
                 ),
               ],
               overflow: [
@@ -139,10 +147,8 @@ void main() {
       await tester.pumpWidget(
         _host(
           ActionBar(
-            primary: BarAction(
-              icon: Icons.menu_book,
-              label: 'Read',
-              onPressed: () {},
+            primary: PrimaryActionButton(
+              BarAction(icon: Icons.menu_book, label: 'Read', onPressed: () {}),
             ),
             overflow: [
               BarAction(
@@ -168,11 +174,13 @@ void main() {
       await tester.pumpWidget(
         _host(
           ActionBar(
-            primary: BarAction(
-              icon: Icons.download,
-              label: 'Download',
-              onPressed: () {},
-              progress: 0.4,
+            primary: PrimaryActionButton(
+              BarAction(
+                icon: Icons.download,
+                label: 'Download',
+                onPressed: () {},
+                progress: 0.4,
+              ),
             ),
           ),
         ),

@@ -11,6 +11,7 @@ import 'package:calibre_web_companion/features/shelf_view.dart/data/models/shelf
 import 'package:calibre_web_companion/features/shelf_view.dart/data/repositories/shelf_view_repository.dart';
 import 'package:calibre_web_companion/l10n/app_localizations.dart';
 import 'package:calibre_web_companion/main.dart';
+import 'package:calibre_web_companion/shared/ui/action_bar.dart';
 import 'package:calibre_web_companion/shared/widgets/app_dialog_button.dart';
 import 'package:calibre_web_companion/shared/widgets/app_skeletonizer.dart';
 import 'package:flutter/material.dart';
@@ -21,10 +22,14 @@ class AddToShelfWidget extends StatefulWidget {
   final BookDetailsModel book;
   final bool isLoading;
 
+  /// Draws the button (e.g. as an action-bar tile); defaults to an icon.
+  final BarActionBuilder? builder;
+
   const AddToShelfWidget({
     super.key,
     required this.book,
     required this.isLoading,
+    this.builder,
   });
 
   @override
@@ -133,6 +138,27 @@ class _AddToShelfWidgetState extends State<AddToShelfWidget> {
           );
         } else {
           icon = const Icon(Icons.playlist_add_rounded);
+        }
+
+        if (widget.builder != null) {
+          final checking =
+              state.checkBookInShelfStatus == CheckBookInShelfStatus.loading ||
+              _magicLoading;
+          return widget.builder!(
+            context,
+            BarAction(
+              icon:
+                  totalContaining > 0
+                      ? Icons.playlist_add_check_rounded
+                      : Icons.playlist_add_rounded,
+              label: localizations.addToShelf,
+              onPressed:
+                  widget.isLoading
+                      ? null
+                      : () => _showShelfDialog(context, localizations),
+              progress: checking ? -1 : null,
+            ),
+          );
         }
 
         return IconButton(

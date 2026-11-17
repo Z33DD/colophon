@@ -7,6 +7,7 @@ import 'package:calibre_web_companion/features/book_details/bloc/book_details_st
 import 'package:calibre_web_companion/features/book_details/data/models/book_details_model.dart';
 import 'package:calibre_web_companion/features/settings/bloc/settings_bloc.dart';
 import 'package:calibre_web_companion/l10n/app_localizations.dart';
+import 'package:calibre_web_companion/shared/ui/action_bar.dart';
 import 'package:calibre_web_companion/shared/widgets/app_options_sheet.dart';
 import 'package:docman/docman.dart';
 import 'package:flutter/material.dart';
@@ -17,10 +18,14 @@ class DownloadToDeviceWidget extends StatelessWidget {
   final BookDetailsModel book;
   final bool isLoading;
 
+  /// Draws the button (e.g. as an action-bar tile); defaults to an icon.
+  final BarActionBuilder? builder;
+
   const DownloadToDeviceWidget({
     super.key,
     required this.book,
     required this.isLoading,
+    this.builder,
   });
 
   @override
@@ -35,6 +40,34 @@ class DownloadToDeviceWidget extends StatelessWidget {
               previous.isDownloaded != current.isDownloaded,
       builder: (context, state) {
         final isDownloaded = state.isDownloaded;
+        final downloading = state.downloadState == DownloadState.downloading;
+        void onPressed() {
+          if (isDownloaded && book.formats.length == 1) {
+            context.showSnackBar(localizations.bookAlreadyDownloaded);
+          } else {
+            _showDownloadOptions(context, localizations, book);
+          }
+        }
+
+        if (builder != null) {
+          return builder!(
+            context,
+            BarAction(
+              icon:
+                  isDownloaded
+                      ? Icons.download_done_rounded
+                      : Icons.download_rounded,
+              label: localizations.download,
+              onPressed: isLoading ? null : onPressed,
+              progress:
+                  downloading
+                      ? (state.downloadProgress > 0
+                          ? state.downloadProgress / 100
+                          : -1)
+                      : null,
+            ),
+          );
+        }
 
         return IconButton(
           icon: CircleAvatar(

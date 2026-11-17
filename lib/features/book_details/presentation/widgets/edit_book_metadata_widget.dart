@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:calibre_web_companion/core/navigation/app_route.dart';
 import 'package:calibre_web_companion/core/services/api_service.dart';
 import 'package:calibre_web_companion/core/services/image_cache_manager.dart';
 import 'package:calibre_web_companion/core/services/server_capabilities.dart';
@@ -35,6 +36,29 @@ class EditBookMetadataWidget extends StatelessWidget {
     required this.bookViewModel,
   });
 
+  /// Opens the metadata editor as a full-screen page. It must be called
+  /// under the book's [BookDetailsBloc].
+  static Future<void> open(
+    BuildContext context, {
+    required BookDetailsModel book,
+    required BookViewModel bookViewModel,
+  }) async {
+    final bloc = context.read<BookDetailsBloc>();
+    await Navigator.of(context).push<bool>(
+      AppRoute(
+        fullscreenDialog: true,
+        builder:
+            (_) => BlocProvider.value(
+              value: bloc,
+              child: _EditBookMetadataDialog(
+                book: book,
+                bookViewModel: bookViewModel,
+              ),
+            ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
@@ -47,31 +71,7 @@ class EditBookMetadataWidget extends StatelessWidget {
       onPressed:
           isLoading
               ? null
-              : () async {
-                final bloc = context.read<BookDetailsBloc>();
-
-                final result = await showModalBottomSheet<bool>(
-                  context: context,
-                  isScrollControlled: true,
-                  useSafeArea: true,
-                  showDragHandle: true,
-                  builder:
-                      (context) => BlocProvider.value(
-                        value: bloc,
-                        child: _EditBookMetadataDialog(
-                          book: book,
-                          bookViewModel: bookViewModel,
-                        ),
-                      ),
-                );
-
-                if (result == true && context.mounted) {
-                  context.showSnackBar(
-                    localizations.metadataUpdateSuccessfully,
-                    isError: false,
-                  );
-                }
-              },
+              : () => open(context, book: book, bookViewModel: bookViewModel),
       tooltip: localizations.editBookMetadata,
     );
   }
@@ -110,14 +110,68 @@ class _EditBookMetadataDialogState extends State<_EditBookMetadataDialog> {
 
   String? _newCoverUrl;
 
+  /// Field values when the editor opened, to tell if anything changed.
+  late List<String> _initialValues;
+  late double _initialRating;
+  bool _saved = false;
+
+  List<TextEditingController> get _fields => [
+    _titleController,
+    _authorsController,
+    _commentsController,
+    _tagsController,
+    _seriesController,
+    _seriesIndexController,
+    _pubdateController,
+    _publisherController,
+    _languagesController,
+  ];
+
+  bool get _isDirty =>
+      !_saved &&
+      (_selectedCoverBytes != null ||
+          _newCoverUrl != null ||
+          _currentRating != _initialRating ||
+          [for (final c in _fields) c.text].join('\u0000') !=
+              _initialValues.join('\u0000'));
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!_isInitialized) {
       final localizations = AppLocalizations.of(context)!;
       _initControllers(localizations);
+      _initialValues = [for (final c in _fields) c.text];
+      _initialRating = _currentRating;
+      // Rebuild on edits so the back guard sees the current state.
+      for (final c in _fields) {
+        c.addListener(() => setState(() {}));
+      }
       _isInitialized = true;
     }
+  }
+
+  Future<bool> _confirmDiscard() async {
+    final l10n = AppLocalizations.of(context)!;
+    final discard = await showDialog<bool>(
+      context: context,
+      builder:
+          (dialog) => AlertDialog(
+            title: Text(l10n.discardChangesTitle),
+            content: Text(l10n.discardChangesMessage),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialog).pop(false),
+                child: Text(l10n.keepEditing),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(dialog).pop(true),
+                child: Text(l10n.discard),
+              ),
+            ],
+          ),
+    );
+    return discard == true;
   }
 
   @override
@@ -214,6 +268,7 @@ class _EditBookMetadataDialogState extends State<_EditBookMetadataDialog> {
             }
 
             if (context.mounted) {
+              setState(() => _saved = true);
               Navigator.of(context).pop(true);
             }
           } else if (state.metadataUpdateState == MetadataUpdateState.error) {
@@ -230,74 +285,84 @@ class _EditBookMetadataDialogState extends State<_EditBookMetadataDialog> {
           final isLoading =
               state.metadataUpdateState == MetadataUpdateState.loading;
 
-          return Scaffold(
-            appBar: AppBar(
-              title: Text(localizations.editBookMetadata),
-              actions: [
-                if (ServerCapabilities.fromServerType(
-                  GetIt.instance<SharedPreferences>().getString('server_type'),
-                ).metadataLookup)
-                  IconButton(
-                    icon: CircleAvatar(
-                      backgroundColor:
-                          Theme.of(context).colorScheme.primaryContainer,
-                      child: const Icon(Icons.search),
+          return PopScope(
+            // Ask before throwing away edits; a clean editor just closes.
+            canPop: !_isDirty,
+            onPopInvokedWithResult: (didPop, _) async {
+              if (didPop) return;
+              final navigator = Navigator.of(context);
+              if (await _confirmDiscard()) {
+                setState(() => _saved = true);
+                navigator.pop();
+              }
+            },
+            child: Scaffold(
+              appBar: AppBar(
+                title: Text(localizations.editBookMetadata),
+                actions: [
+                  if (ServerCapabilities.fromServerType(
+                    GetIt.instance<SharedPreferences>().getString(
+                      'server_type',
                     ),
-                    tooltip: localizations.fetchMetadata,
-                    onPressed: isLoading ? null : _openMetadataSearch,
-                  ),
-                IconButton(
-                  icon: CircleAvatar(
-                    backgroundColor:
-                        Theme.of(context).colorScheme.primaryContainer,
+                  ).metadataLookup)
+                    IconButton(
+                      icon: const Icon(Icons.manage_search_rounded),
+                      tooltip: localizations.fetchMetadata,
+                      onPressed: isLoading ? null : _openMetadataSearch,
+                    ),
+                  TextButton(
+                    style: TextButton.styleFrom(
+                      foregroundColor:
+                          Theme.of(context).appBarTheme.foregroundColor,
+                    ),
+                    onPressed:
+                        isLoading
+                            ? null
+                            : () {
+                              context.read<BookDetailsBloc>().add(
+                                UpdateBookMetadata(
+                                  bookId: widget.book.id.toString(),
+                                  title: _titleController.text,
+                                  authors: _authorsController.text,
+                                  comments: _commentsController.text,
+                                  tags: _tagsController.text,
+                                  series: _seriesController.text,
+                                  seriesIndex: _seriesIndexController.text,
+                                  pubdate: _pubdateController.text,
+                                  publisher: _publisherController.text,
+                                  languages: _languagesController.text,
+                                  rating: _currentRating,
+                                  coverImageBytes: _selectedCoverBytes,
+                                  coverFileName:
+                                      _selectedCoverName ?? 'cover.jpg',
+                                  bookDetails: widget.book,
+                                  coverUrl: _newCoverUrl,
+                                ),
+                              );
+                            },
                     child:
                         isLoading
-                            ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 3),
-                            )
-                            : const Icon(Icons.save),
-                  ),
-                  tooltip: localizations.save,
-                  onPressed:
-                      isLoading
-                          ? null
-                          : () {
-                            context.read<BookDetailsBloc>().add(
-                              UpdateBookMetadata(
-                                bookId: widget.book.id.toString(),
-                                title: _titleController.text,
-                                authors: _authorsController.text,
-                                comments: _commentsController.text,
-                                tags: _tagsController.text,
-                                series: _seriesController.text,
-                                seriesIndex: _seriesIndexController.text,
-                                pubdate: _pubdateController.text,
-                                publisher: _publisherController.text,
-                                languages: _languagesController.text,
-                                rating: _currentRating,
-                                coverImageBytes: _selectedCoverBytes,
-                                coverFileName:
-                                    _selectedCoverName ?? 'cover.jpg',
-                                bookDetails: widget.book,
-                                coverUrl: _newCoverUrl,
+                            ? const SizedBox.square(
+                              dimension: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
                               ),
-                            );
-                          },
-                ),
+                            )
+                            : Text(localizations.save),
+                  ),
 
-                const SizedBox(width: 8),
-              ],
-            ),
-            body: SingleChildScrollView(
-              padding: EdgeInsets.only(
-                left: 16,
-                right: 16,
-                top: 8,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+                  const SizedBox(width: 8),
+                ],
               ),
-              child: _buildMetadataForm(context, isLoading, localizations),
+              body: SingleChildScrollView(
+                padding: EdgeInsets.only(
+                  left: 16,
+                  right: 16,
+                  top: 8,
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+                ),
+                child: _buildMetadataForm(context, isLoading, localizations),
+              ),
             ),
           );
         },

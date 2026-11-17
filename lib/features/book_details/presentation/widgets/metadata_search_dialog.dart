@@ -97,12 +97,16 @@ class _MetadataSearchDialogState extends State<MetadataSearchDialog> {
     final localizations = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
 
-    return Dialog(
-      insetPadding: const EdgeInsets.all(16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+    // Full screen, so the field-merge dialog is the only dialog over the
+    // editor instead of a dialog stacked on a dialog.
+    return Dialog.fullscreen(
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 600, maxHeight: 800),
-        padding: const EdgeInsets.fromLTRB(20, 16, 12, 16),
+        padding: EdgeInsets.fromLTRB(
+          20,
+          16 + MediaQuery.paddingOf(context).top,
+          12,
+          16 + MediaQuery.paddingOf(context).bottom,
+        ),
         child: Column(
           children: [
             Row(

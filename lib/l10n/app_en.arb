@@ -790,5 +790,9 @@
       }
     }
   },
-  "removeFromThisShelf": "Remove from this shelf"
+  "removeFromThisShelf": "Remove from this shelf",
+  "discardChangesTitle": "Discard your changes?",
+  "discardChangesMessage": "The edits to this book haven't been saved.",
+  "discard": "Discard",
+  "keepEditing": "Keep editing"
 }
