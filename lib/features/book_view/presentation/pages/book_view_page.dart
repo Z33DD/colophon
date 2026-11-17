@@ -446,7 +446,7 @@ class _BookViewPageState extends State<BookViewPage> {
       context: context,
       isDismissible: false,
       enableDrag: false,
-      barrierColor: Colors.black54,
+      barrierColor: Theme.of(context).colorScheme.scrim.withValues(alpha: .54),
       builder: (BuildContext context) {
         return PopScope(
           canPop: false,
@@ -467,8 +467,7 @@ class _BookViewPageState extends State<BookViewPage> {
 
                       Text(
                         _getStatusMessage(state.uploadStatus, localizations),
-                        style: const TextStyle(
-                          fontSize: 16,
+                        style: Theme.of(context).textTheme.bodyLarge!.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                         textAlign: TextAlign.center,
@@ -480,9 +479,10 @@ class _BookViewPageState extends State<BookViewPage> {
                           padding: const EdgeInsets.only(top: 8.0),
                           child: Text(
                             state.errorMessage,
-                            style: TextStyle(
+                            style: Theme.of(
+                              context,
+                            ).textTheme.bodySmall!.copyWith(
                               color: Theme.of(context).colorScheme.error,
-                              fontSize: 12,
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -495,7 +495,10 @@ class _BookViewPageState extends State<BookViewPage> {
                       if (state.uploadStatus == UploadStatus.loading ||
                           state.uploadStatus == UploadStatus.uploading)
                         LinearProgressIndicator(
-                          backgroundColor: Colors.grey[200],
+                          backgroundColor:
+                              Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainerHighest,
                           valueColor: AlwaysStoppedAnimation<Color>(
                             Theme.of(context).primaryColor,
                           ),
@@ -560,8 +563,9 @@ class _BookViewPageState extends State<BookViewPage> {
                                                 UploadStatus.failed
                                         ? localizations.close
                                         : localizations.cancel,
-                                    style: TextStyle(
-                                      fontSize: 16,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyLarge!.copyWith(
                                       fontWeight: FontWeight.bold,
                                       color:
                                           Theme.of(

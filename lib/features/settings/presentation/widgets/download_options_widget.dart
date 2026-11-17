@@ -297,8 +297,7 @@ class DownloadOptionsWidget extends StatelessWidget {
                       title: Text(localizations.useAuthorSort),
                       subtitle: Text(
                         useAuthorSort ? 'Doe, John' : 'John Doe',
-                        style: TextStyle(
-                          fontSize: 12,
+                        style: Theme.of(context).textTheme.bodySmall!.copyWith(
                           color: Theme.of(context).textTheme.bodySmall?.color,
                         ),
                       ),
@@ -431,8 +430,7 @@ class DownloadOptionsWidget extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     example,
-                    style: TextStyle(
-                      fontSize: 12,
+                    style: Theme.of(context).textTheme.bodySmall!.copyWith(
                       color: Theme.of(context).textTheme.bodySmall?.color,
                     ),
                   ),

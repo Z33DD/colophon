@@ -8,6 +8,7 @@ import 'package:calibre_web_companion/features/login/bloc/login_state.dart';
 import 'package:calibre_web_companion/features/login/presentation/widgets/login_text_field.dart';
 import 'package:calibre_web_companion/features/login_settings/presentation/pages/login_settings_page.dart';
 import 'package:calibre_web_companion/l10n/app_localizations.dart';
+import 'package:calibre_web_companion/shared/utils/status_colors.dart';
 import 'package:calibre_web_companion/shared/widgets/app_dialog_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -89,7 +90,10 @@ class _LoginFormState extends State<LoginForm> {
       case EndpointStatus.reachable:
         return Tooltip(
           message: localizations.serverReachable,
-          child: const Icon(Icons.check_circle_rounded, color: Colors.green),
+          child: Icon(
+            Icons.check_circle_rounded,
+            color: StatusColors.success(context),
+          ),
         );
       case EndpointStatus.authRequired:
         return Tooltip(
@@ -359,9 +363,11 @@ class _LoginFormState extends State<LoginForm> {
                                 ),
                                 child: Text(
                                   _isHttps ? 'https://' : 'http://',
-                                  style: TextStyle(
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.bodySmall!.copyWith(
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 13,
+
                                     color:
                                         Theme.of(
                                           context,
@@ -524,8 +530,9 @@ class _LoginFormState extends State<LoginForm> {
                                                 const SizedBox(width: 12),
                                                 Text(
                                                   localizations.login,
-                                                  style: TextStyle(
-                                                    fontSize: 16,
+                                                  style: Theme.of(
+                                                    context,
+                                                  ).textTheme.bodyLarge!.copyWith(
                                                     fontWeight: FontWeight.bold,
                                                     color:
                                                         Theme.of(context)

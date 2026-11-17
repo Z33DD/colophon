@@ -138,9 +138,8 @@ class _BookCardWidgetState extends State<BookCardWidget> {
                   ),
                   child: Text(
                     '${localizations.error}: ${widget.book.errorMessage}',
-                    style: TextStyle(
+                    style: Theme.of(context).textTheme.bodySmall!.copyWith(
                       color: Theme.of(context).colorScheme.error,
-                      fontSize: 12,
                     ),
                   ),
                 ),

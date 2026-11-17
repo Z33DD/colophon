@@ -25,7 +25,9 @@ class BookListTileSkeleton extends StatelessWidget {
             children: [
               AspectRatio(
                 aspectRatio: 2 / 3,
-                child: Container(color: Colors.grey[300]),
+                child: Container(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                ),
               ),
               Expanded(
                 child: Padding(
@@ -36,19 +38,28 @@ class BookListTileSkeleton extends StatelessWidget {
                       Container(
                         height: 20,
                         width: double.infinity,
-                        color: Colors.grey[300],
+                        color:
+                            Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerHighest,
                       ),
                       const SizedBox(height: 8),
                       Container(
                         height: 14,
                         width: 150,
-                        color: Colors.grey[300],
+                        color:
+                            Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerHighest,
                       ),
                       const SizedBox(height: 8),
                       Container(
                         height: 12,
                         width: 100,
-                        color: Colors.grey[300],
+                        color:
+                            Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerHighest,
                       ),
                       const Spacer(),
                       Row(
@@ -57,12 +68,18 @@ class BookListTileSkeleton extends StatelessWidget {
                           Container(
                             height: 10,
                             width: 80,
-                            color: Colors.grey[300],
+                            color:
+                                Theme.of(
+                                  context,
+                                ).colorScheme.surfaceContainerHighest,
                           ),
                           Container(
                             height: 10,
                             width: 60,
-                            color: Colors.grey[300],
+                            color:
+                                Theme.of(
+                                  context,
+                                ).colorScheme.surfaceContainerHighest,
                           ),
                         ],
                       ),

@@ -43,6 +43,7 @@ import 'package:calibre_web_companion/l10n/app_localizations.dart';
 import 'package:calibre_web_companion/shared/ui/action_bar.dart';
 import 'package:calibre_web_companion/shared/ui/book_cover.dart';
 import 'package:calibre_web_companion/shared/ui/expandable_text.dart';
+import 'package:calibre_web_companion/shared/utils/status_colors.dart';
 import 'package:calibre_web_companion/shared/widgets/app_dialog_button.dart';
 import 'package:calibre_web_companion/shared/widgets/app_options_sheet.dart';
 import 'package:calibre_web_companion/shared/widgets/app_skeletonizer.dart';
@@ -837,10 +838,11 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                               Theme.of(context).colorScheme.error,
                           title: Text(
                             localizations.technicalDetails,
-                            style: TextStyle(
+                            style: Theme.of(
+                              context,
+                            ).textTheme.bodyMedium!.copyWith(
                               color: Theme.of(context).colorScheme.error,
                               fontWeight: FontWeight.bold,
-                              fontSize: 14,
                             ),
                           ),
                           children: [
@@ -912,7 +914,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                         child: Container(
                           height: 20,
                           width: 300,
-                          color: Colors.black,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       )
                       : Text(
@@ -1816,7 +1818,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                 : (i == filledStars && hasHalfStar)
                 ? Icons.star_half
                 : Icons.star_border,
-            color: Colors.amber,
+            color: StatusColors.rating(context),
             size: 20,
           ),
       ],

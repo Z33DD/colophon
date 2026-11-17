@@ -129,8 +129,7 @@ class _AddToShelfWidgetState extends State<AddToShelfWidget> {
             backgroundColor: Theme.of(context).colorScheme.tertiaryContainer,
             label: Text(
               totalContaining.toString(),
-              style: TextStyle(
-                fontSize: 10,
+              style: Theme.of(context).textTheme.labelSmall!.copyWith(
                 color: Theme.of(context).colorScheme.onTertiaryContainer,
               ),
             ),

@@ -1,5 +1,6 @@
 import 'package:calibre_web_companion/features/discover/blocs/discover_event.dart';
 import 'package:calibre_web_companion/features/discover_details/data/models/category_model.dart';
+import 'package:calibre_web_companion/shared/utils/status_colors.dart';
 import 'package:flutter/material.dart';
 
 class CategoryListItem extends StatelessWidget {
@@ -84,7 +85,7 @@ class CategoryListItem extends StatelessWidget {
                 ? Icons.star_half
                 : Icons.star_border,
             size: 20,
-            color: Colors.amber,
+            color: StatusColors.rating(context),
           ),
         const SizedBox(width: 6),
         Text(

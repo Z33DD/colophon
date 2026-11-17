@@ -270,14 +270,18 @@ Widget _coverTile(
     decoration: BoxDecoration(
       borderRadius: BorderRadius.circular(6),
       border: Border.all(color: scheme.surface, width: 2),
-      boxShadow: const [
-        BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 3)),
+      boxShadow: [
+        BoxShadow(
+          color: scheme.shadow.withValues(alpha: .26),
+          blurRadius: 6,
+          offset: const Offset(0, 3),
+        ),
       ],
     ),
     clipBehavior: Clip.antiAlias,
     foregroundDecoration:
         dimmed
-            ? BoxDecoration(color: Colors.black.withValues(alpha: 0.28))
+            ? BoxDecoration(color: scheme.scrim.withValues(alpha: 0.28))
             : null,
     child: BookCoverWidget(
       bookId: book.id,

@@ -15,6 +15,7 @@ import 'package:calibre_web_companion/features/book_details/data/models/metadata
 import 'package:calibre_web_companion/features/book_details/presentation/widgets/metadata_search_dialog.dart';
 import 'package:calibre_web_companion/features/book_view/data/models/book_view_model.dart';
 import 'package:calibre_web_companion/l10n/app_localizations.dart';
+import 'package:calibre_web_companion/shared/utils/status_colors.dart';
 import 'package:calibre_web_companion/shared/widgets/book_cover_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -442,11 +443,15 @@ class _EditBookMetadataDialogState extends State<_EditBookMetadataDialog> {
                     width: 120,
                     height: 180,
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade300),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                      ),
                       borderRadius: BorderRadius.circular(8),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: .1),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.shadow.withValues(alpha: .1),
                           blurRadius: 4,
                           offset: const Offset(0, 2),
                         ),
@@ -618,7 +623,7 @@ class _EditBookMetadataDialogState extends State<_EditBookMetadataDialog> {
               starCount: 5,
               rating: _currentRating,
               allowHalfRating: true,
-              color: Colors.amber,
+              color: StatusColors.rating(context),
               borderColor: Theme.of(context).colorScheme.outline,
               onRatingChanged:
                   isLoading

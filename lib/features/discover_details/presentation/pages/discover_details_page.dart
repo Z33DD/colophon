@@ -16,6 +16,7 @@ import 'package:calibre_web_companion/features/discover_details/presentation/wid
 import 'package:calibre_web_companion/l10n/app_localizations.dart';
 import 'package:calibre_web_companion/main.dart';
 import 'package:calibre_web_companion/shared/ui/on_book_changed.dart';
+import 'package:calibre_web_companion/shared/utils/status_colors.dart';
 import 'package:calibre_web_companion/shared/widgets/book_card_skeleton_widget.dart';
 import 'package:calibre_web_companion/shared/widgets/book_card_widget.dart';
 import 'package:calibre_web_companion/shared/widgets/book_cover_widget.dart';
@@ -127,17 +128,25 @@ class DiscoverDetailsPage extends StatelessWidget {
     final List<Widget> stars = [];
 
     for (int i = 0; i < fullStars; i++) {
-      stars.add(const Icon(Icons.star, color: Colors.amber, size: 24));
+      stars.add(
+        Icon(Icons.star, color: StatusColors.rating(context), size: 24),
+      );
     }
 
     if (remainder >= 0.25 && remainder < 0.75) {
-      stars.add(const Icon(Icons.star_half, color: Colors.amber, size: 24));
+      stars.add(
+        Icon(Icons.star_half, color: StatusColors.rating(context), size: 24),
+      );
     } else if (remainder >= 0.75) {
-      stars.add(const Icon(Icons.star, color: Colors.amber, size: 24));
+      stars.add(
+        Icon(Icons.star, color: StatusColors.rating(context), size: 24),
+      );
     }
 
     while (stars.length < 5) {
-      stars.add(const Icon(Icons.star_border, color: Colors.amber, size: 24));
+      stars.add(
+        Icon(Icons.star_border, color: StatusColors.rating(context), size: 24),
+      );
     }
 
     final formattedRating = ratingValue.toStringAsFixed(1);

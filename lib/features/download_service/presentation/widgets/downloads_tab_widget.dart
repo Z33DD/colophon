@@ -123,7 +123,13 @@ class DownloadsTabWidget extends StatelessWidget {
                     height: 200,
                     child: Row(
                       children: [
-                        Container(width: 120, color: Colors.grey),
+                        Container(
+                          width: 120,
+                          color:
+                              Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainerHighest,
+                        ),
                         Expanded(
                           child: Padding(
                             padding: const EdgeInsets.all(16.0),
@@ -133,19 +139,28 @@ class DownloadsTabWidget extends StatelessWidget {
                                 Container(
                                   height: 24,
                                   width: double.infinity,
-                                  color: Colors.grey,
+                                  color:
+                                      Theme.of(
+                                        context,
+                                      ).colorScheme.surfaceContainerHighest,
                                 ),
                                 const SizedBox(height: 8),
                                 Container(
                                   height: 16,
                                   width: 150,
-                                  color: Colors.grey,
+                                  color:
+                                      Theme.of(
+                                        context,
+                                      ).colorScheme.surfaceContainerHighest,
                                 ),
                                 const SizedBox(height: 8),
                                 Container(
                                   height: 16,
                                   width: 100,
-                                  color: Colors.grey,
+                                  color:
+                                      Theme.of(
+                                        context,
+                                      ).colorScheme.surfaceContainerHighest,
                                 ),
                               ],
                             ),

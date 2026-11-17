@@ -257,8 +257,7 @@ class SendToEreaderWidget extends StatelessWidget {
             RichText(
               text: TextSpan(
                 text: localizations.visit,
-                style: TextStyle(
-                  fontSize: 13,
+                style: Theme.of(context).textTheme.bodySmall!.copyWith(
                   color: Theme.of(context).hintColor,
                 ),
                 children: <TextSpan>[
@@ -296,8 +295,7 @@ class SendToEreaderWidget extends StatelessWidget {
               Expanded(
                 child: Text(
                   localizations.bookWillBeSendToYourEmailAdress,
-                  style: TextStyle(
-                    fontSize: 14,
+                  style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -307,8 +305,7 @@ class SendToEreaderWidget extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             localizations.makeSureEmailSettingsAreConfigured,
-            style: TextStyle(
-              fontSize: 13,
+            style: Theme.of(context).textTheme.bodySmall!.copyWith(
               fontStyle: FontStyle.italic,
               color: Theme.of(
                 context,
@@ -400,7 +397,7 @@ class SendToEreaderWidget extends StatelessWidget {
       context: context,
       isDismissible: false,
       enableDrag: false,
-      barrierColor: Colors.black54,
+      barrierColor: Theme.of(context).colorScheme.scrim.withValues(alpha: .54),
       builder: (BuildContext context) {
         return PopScope(
           canPop: false,
@@ -450,10 +447,8 @@ class SendToEreaderWidget extends StatelessWidget {
                             state.sendToEReaderState,
                             localizations,
                           ),
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: Theme.of(context).textTheme.bodyLarge!
+                              .copyWith(fontWeight: FontWeight.bold),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 20),
@@ -461,7 +456,10 @@ class SendToEreaderWidget extends StatelessWidget {
                         if (state.sendToEReaderState ==
                             SendToEReaderState.loading)
                           LinearProgressIndicator(
-                            backgroundColor: Colors.grey[200],
+                            backgroundColor:
+                                Theme.of(
+                                  context,
+                                ).colorScheme.surfaceContainerHighest,
                             valueColor: AlwaysStoppedAnimation<Color>(
                               Theme.of(context).primaryColor,
                             ),
@@ -474,7 +472,10 @@ class SendToEreaderWidget extends StatelessWidget {
                           Column(
                             children: [
                               LinearProgressIndicator(
-                                backgroundColor: Colors.grey[200],
+                                backgroundColor:
+                                    Theme.of(
+                                      context,
+                                    ).colorScheme.surfaceContainerHighest,
                                 value:
                                     state.sendToEReaderProgress > 0
                                         ? state.sendToEReaderProgress / 100
@@ -486,8 +487,9 @@ class SendToEreaderWidget extends StatelessWidget {
                               const SizedBox(height: 8),
                               Text(
                                 '${state.sendToEReaderProgress}%',
-                                style: TextStyle(
-                                  fontSize: 14,
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.bodyMedium!.copyWith(
                                   fontWeight: FontWeight.bold,
                                   color: Theme.of(context).colorScheme.primary,
                                 ),
@@ -502,9 +504,10 @@ class SendToEreaderWidget extends StatelessWidget {
                             padding: const EdgeInsets.only(top: 8.0),
                             child: Text(
                               state.errorMessage!,
-                              style: TextStyle(
+                              style: Theme.of(
+                                context,
+                              ).textTheme.bodySmall!.copyWith(
                                 color: Theme.of(context).colorScheme.error,
-                                fontSize: 12,
                               ),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
@@ -568,8 +571,9 @@ class SendToEreaderWidget extends StatelessWidget {
                                                   SendToEReaderState.error
                                           ? localizations.close
                                           : localizations.cancel,
-                                      style: TextStyle(
-                                        fontSize: 16,
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodyLarge!.copyWith(
                                         fontWeight: FontWeight.bold,
                                         color:
                                             Theme.of(

@@ -80,7 +80,7 @@ class _SyncSettingsWidgetState extends State<SyncSettingsWidget> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(localization.syncCompletedSuccessfully),
-                        backgroundColor: Colors.green,
+                        backgroundColor: StatusColors.success(context),
                       ),
                     );
                   }
@@ -124,12 +124,16 @@ class _SyncSettingsWidgetState extends State<SyncSettingsWidget> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.green.withValues(alpha: .1),
+              color: StatusColors.success(context).withValues(alpha: .1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
               children: [
-                const Icon(Icons.check_circle, color: Colors.green, size: 20),
+                Icon(
+                  Icons.check_circle,
+                  color: StatusColors.success(context),
+                  size: 20,
+                ),
                 const SizedBox(width: 8),
                 Expanded(child: Text(message)),
               ],

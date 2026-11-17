@@ -1055,7 +1055,10 @@ class _SettingsPageState extends State<SettingsPage> {
                           Text(
                             localizations
                                 .storeReadNowAndSendToEReaderOnDeviceDescription,
-                            style: const TextStyle(fontSize: 12),
+                            style:
+                                Theme.of(
+                                  context,
+                                ).textTheme.bodySmall!.copyWith(),
                           ),
                         ],
                       ),
@@ -1228,9 +1231,8 @@ class _SettingsPageState extends State<SettingsPage> {
               initialValue: state.languageCode,
               icon: const Icon(Icons.arrow_drop_down),
               elevation: 16,
-              style: TextStyle(
+              style: Theme.of(context).textTheme.bodyLarge!.copyWith(
                 color: Theme.of(context).colorScheme.onSurface,
-                fontSize: 16,
               ),
               onChanged: (String? newValue) {
                 if (newValue != null) {
@@ -1245,7 +1247,10 @@ class _SettingsPageState extends State<SettingsPage> {
                         children: [
                           Text(
                             language['flag'] ?? '',
-                            style: const TextStyle(fontSize: 18),
+                            style:
+                                Theme.of(
+                                  context,
+                                ).textTheme.titleMedium!.copyWith(),
                           ),
                           const SizedBox(width: 12),
                           Text(language['name'] ?? ''),

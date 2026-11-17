@@ -9,6 +9,9 @@ class StatusColors {
   /// In-progress / warning (amber).
   static Color warning(BuildContext context) => _shade(context, Colors.amber);
 
+  /// Rating stars (amber), readable on both light and dark grounds.
+  static Color rating(BuildContext context) => _shade(context, Colors.amber);
+
   /// Informational / available (blue).
   static Color info(BuildContext context) => _shade(context, Colors.blue);
 
