@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:calibre_web_companion/core/di/injection_container.dart';
@@ -59,6 +60,43 @@ class _SettingsPageState extends State<SettingsPage> {
       TextEditingController();
 
   bool _showDownloaderAuth = false;
+
+  /// Debounces typing so fields save (or test) once the user pauses.
+  Timer? _downloaderSave;
+  Timer? _webDavTest;
+
+  void _saveDownloaderCredentialsSoon(BuildContext context) {
+    _downloaderSave?.cancel();
+    _downloaderSave = Timer(const Duration(milliseconds: 600), () {
+      if (!context.mounted) return;
+      context.read<SettingsBloc>().add(
+        SetDownloaderCredentials(
+          _downloaderUsernameController.text.trim(),
+          _downloaderPasswordController.text,
+        ),
+      );
+      _reloadDownloadService(context);
+    });
+  }
+
+  /// WebDAV settings are tested as you type and saved once the test
+  /// passes, so there is no separate Test/Save button.
+  void _testWebDavSoon(BuildContext context) {
+    final bloc = context.read<SettingsBloc>()..add(ResetConnectionTestStatus());
+    _webDavTest?.cancel();
+    final url = _webDavUrlController.text.trim();
+    if (url.isEmpty) return;
+    _webDavTest = Timer(const Duration(milliseconds: 800), () {
+      bloc.add(
+        TestWebDavConnection(
+          url: url,
+          username: _webDavUsernameController.text.trim(),
+          password: _webDavPasswordController.text,
+        ),
+      );
+    });
+  }
+
   bool _didOpenInitialSubPage = false;
 
   @override
@@ -80,6 +118,8 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   void dispose() {
+    _downloaderSave?.cancel();
+    _webDavTest?.cancel();
     _send2ereaderUrlController.dispose();
     _downloaderUrlController.dispose();
     _downloaderUsernameController.dispose();
@@ -305,16 +345,16 @@ class _SettingsPageState extends State<SettingsPage> {
               (previous, current) =>
                   previous.webDavTestStatus != current.webDavTestStatus,
           listener: (context, state) {
+            // The result shows under the fields; a passing test saves.
             if (state.webDavTestStatus == ConnectionTestStatus.success) {
-              context.showSnackBar(
-                localizations.connectionTestSuccessful,
-                isError: false,
-              );
-            } else if (state.webDavTestStatus == ConnectionTestStatus.error) {
-              context.showSnackBar(
-                state.testErrorMessage ?? localizations.connectionError,
-                isError: true,
-              );
+              context.read<SettingsBloc>()
+                ..add(SetWebDavUrl(_webDavUrlController.text.trim()))
+                ..add(
+                  SetWebDavCredentials(
+                    _webDavUsernameController.text.trim(),
+                    _webDavPasswordController.text,
+                  ),
+                );
             }
           },
         ),
@@ -882,6 +922,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 const SizedBox(height: 16),
                 TextField(
                   controller: _downloaderUsernameController,
+                  onChanged: (_) => _saveDownloaderCredentialsSoon(context),
                   decoration: InputDecoration(
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12.0),
@@ -900,6 +941,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 TextField(
                   controller: _downloaderPasswordController,
                   obscureText: true,
+                  onChanged: (_) => _saveDownloaderCredentialsSoon(context),
                   decoration: InputDecoration(
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12.0),
@@ -911,40 +953,6 @@ class _SettingsPageState extends State<SettingsPage> {
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16.0,
                       vertical: 14.0,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    style: FilledButton.styleFrom(
-                      backgroundColor:
-                          Theme.of(context).colorScheme.primaryContainer,
-                    ),
-                    onPressed: () {
-                      context.read<SettingsBloc>().add(
-                        SetDownloaderUrl(_downloaderUrlController.text.trim()),
-                      );
-                      context.read<SettingsBloc>().add(
-                        SetDownloaderCredentials(
-                          _downloaderUsernameController.text.trim(),
-                          _downloaderPasswordController.text,
-                        ),
-                      );
-                      _reloadDownloadService(context);
-                      context.showSnackBar(localizations.settingsSaved);
-                      FocusScope.of(context).unfocus();
-                    },
-                    icon: Icon(
-                      Icons.save,
-                      color: Theme.of(context).colorScheme.onPrimaryContainer,
-                    ),
-                    label: Text(
-                      localizations.saveCredentials,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onPrimaryContainer,
-                      ),
                     ),
                   ),
                 ),
@@ -1331,14 +1339,11 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 Switch(
                   value: state.showReadNowButton,
+                  // Independent of Send now: both can show in the action row.
                   onChanged:
-                      state.showSendToEReaderButton
-                          ? (value) {
-                            context.read<SettingsBloc>().add(
-                              SetShowReadNowButton(value),
-                            );
-                          }
-                          : null,
+                      (value) => context.read<SettingsBloc>().add(
+                        SetShowReadNowButton(value),
+                      ),
                   activeThumbColor: Theme.of(context).colorScheme.primary,
                 ),
               ],
@@ -2320,10 +2325,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   prefixIcon: const Icon(Icons.link),
                 ),
-                onChanged:
-                    (_) => context.read<SettingsBloc>().add(
-                      ResetConnectionTestStatus(),
-                    ),
+                onChanged: (_) => _testWebDavSoon(context),
               ),
               const SizedBox(height: 16),
               TextField(
@@ -2335,10 +2337,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   prefixIcon: const Icon(Icons.person),
                 ),
-                onChanged:
-                    (_) => context.read<SettingsBloc>().add(
-                      ResetConnectionTestStatus(),
-                    ),
+                onChanged: (_) => _testWebDavSoon(context),
               ),
               const SizedBox(height: 16),
               TextField(
@@ -2351,72 +2350,12 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   prefixIcon: const Icon(Icons.lock),
                 ),
-                onChanged:
-                    (_) => context.read<SettingsBloc>().add(
-                      ResetConnectionTestStatus(),
-                    ),
+                onChanged: (_) => _testWebDavSoon(context),
               ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: () {
-                    if (state.webDavTestStatus ==
-                        ConnectionTestStatus.loading) {
-                      return;
-                    }
-
-                    if (state.webDavTestStatus ==
-                        ConnectionTestStatus.success) {
-                      context.read<SettingsBloc>().add(
-                        SetWebDavUrl(_webDavUrlController.text.trim()),
-                      );
-                      context.read<SettingsBloc>().add(
-                        SetWebDavCredentials(
-                          _webDavUsernameController.text.trim(),
-                          _webDavPasswordController.text,
-                        ),
-                      );
-                      context.showSnackBar(localizations.settingsSaved);
-                      FocusScope.of(context).unfocus();
-                    } else {
-                      context.read<SettingsBloc>().add(
-                        TestWebDavConnection(
-                          url: _webDavUrlController.text.trim(),
-                          username: _webDavUsernameController.text.trim(),
-                          password: _webDavPasswordController.text,
-                        ),
-                      );
-                    }
-                  },
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                  ),
-                  icon:
-                      state.webDavTestStatus == ConnectionTestStatus.loading
-                          ? SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Theme.of(context).colorScheme.onPrimary,
-                            ),
-                          )
-                          : Icon(
-                            state.webDavTestStatus ==
-                                    ConnectionTestStatus.success
-                                ? Icons.check_circle
-                                : Icons.wifi_find,
-                          ),
-                  label: Text(
-                    state.webDavTestStatus == ConnectionTestStatus.loading
-                        ? localizations.testing
-                        : (state.webDavTestStatus ==
-                                ConnectionTestStatus.success
-                            ? localizations.save
-                            : localizations.testConnection),
-                  ),
-                ),
+              const SizedBox(height: 12),
+              _ConnectionStatusLine(
+                status: state.webDavTestStatus,
+                error: state.testErrorMessage,
               ),
               const SizedBox(height: 8),
               Text(
@@ -2428,6 +2367,53 @@ class _SettingsPageState extends State<SettingsPage> {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Inline result of a connection test: checking, connected and saved, or
+/// the error. Replaces success/error snackbars for these forms.
+class _ConnectionStatusLine extends StatelessWidget {
+  const _ConnectionStatusLine({required this.status, this.error});
+
+  final ConnectionTestStatus status;
+  final String? error;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
+    final (Widget? icon, String? text, Color color) = switch (status) {
+      ConnectionTestStatus.loading => (
+        const SizedBox.square(
+          dimension: 16,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+        l10n.checkingConnection,
+        scheme.onSurfaceVariant,
+      ),
+      ConnectionTestStatus.success => (
+        Icon(Icons.check_circle_rounded, size: 18, color: scheme.primary),
+        l10n.connectedAndSaved,
+        scheme.primary,
+      ),
+      ConnectionTestStatus.error => (
+        Icon(Icons.error_outline_rounded, size: 18, color: scheme.error),
+        error ?? l10n.connectionError,
+        scheme.error,
+      ),
+      _ => (null, null, scheme.onSurfaceVariant),
+    };
+    if (text == null) return const SizedBox.shrink();
+    return Semantics(
+      liveRegion: true,
+      child: Row(
+        children: [
+          icon!,
+          const SizedBox(width: 8),
+          Expanded(child: Text(text, style: TextStyle(color: color))),
+        ],
       ),
     );
   }
