@@ -14,8 +14,7 @@ typedef BookFolder = ({bool proceed, DocumentFile? folder});
 /// The one folder step for download, open-in-reader and send.
 ///
 /// With a default folder set it is reused silently. Otherwise the user
-/// picks one, and a snackbar offers to keep it as the default so the
-/// picker doesn't come back every time. A cancelled picker is a choice,
+/// picks one and it is saved as the default (a snackbar says so). A cancelled picker is a choice,
 /// not an error: no message, and the caller stays on its screen.
 Future<BookFolder> pickBookFolder(
   BuildContext context, {
@@ -33,11 +32,10 @@ Future<BookFolder> pickBookFolder(
   switch (result) {
     case FolderResolved(:final folder):
       if (folder != null && !hadDefault) {
-        context.showSnackBar(
-          l10n.folderSavedHere(folder.name),
-          actionLabel: l10n.folderAlwaysUse,
-          onAction: () => settings.add(SetDownloadFolder(folder.uri)),
-        );
+        // The first folder picked becomes the default, so the picker does
+        // not come back on every download. Settings > Downloads changes it.
+        settings.add(SetDownloadFolder(folder.uri));
+        context.showSnackBar(l10n.folderRemembered(folder.name));
       }
       return (proceed: true, folder: folder);
     case FolderPickCancelled():

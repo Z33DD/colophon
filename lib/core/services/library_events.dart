@@ -1,7 +1,17 @@
 import 'dart:async';
 
 /// What changed about a book. Lists use it to refresh or drop a row.
-enum BookChange { readStatus, archived, metadata, shelves, deleted, download }
+enum BookChange {
+  readStatus,
+  archived,
+  metadata,
+  shelves,
+  deleted,
+  download,
+
+  /// Reading progress recorded on this device changed.
+  progress,
+}
 
 /// A book changed somewhere in the app.
 class BookChanged {

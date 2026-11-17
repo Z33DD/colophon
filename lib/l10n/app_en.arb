@@ -898,5 +898,21 @@
   "shelfEditedMessage": "Shelf updated",
   "shelfEditFailed": "Couldn't update the shelf",
   "shelfDeletedMessage": "Shelf deleted",
-  "shelfDeleteFailed": "Couldn't delete the shelf"
+  "shelfDeleteFailed": "Couldn't delete the shelf",
+  "folderRemembered": "Books will be saved to {folder}. Change it in Settings › Downloads.",
+  "@folderRemembered": {
+    "placeholders": {
+      "folder": {
+        "type": "String"
+      }
+    }
+  },
+  "continueReading": "Continue · {percent}%",
+  "@continueReading": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  }
 }

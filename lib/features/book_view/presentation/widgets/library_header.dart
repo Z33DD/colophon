@@ -1,6 +1,4 @@
 import 'package:calibre_web_companion/core/navigation/app_route.dart';
-import 'package:calibre_web_companion/core/theme/app_theme.dart';
-import 'package:calibre_web_companion/core/theme/desk_colors.dart';
 import 'package:calibre_web_companion/features/book_view/bloc/book_view_bloc.dart';
 import 'package:calibre_web_companion/features/book_view/bloc/book_view_event.dart';
 import 'package:calibre_web_companion/features/book_view/bloc/book_view_state.dart';
@@ -16,14 +14,10 @@ import 'package:get_it/get_it.dart';
 
 /// The search pill in the Library app bar. Shows the active search (with
 /// its scope) and clears it in one tap.
-class LibrarySearchField extends StatelessWidget
-    implements PreferredSizeWidget {
+class LibrarySearchField extends StatelessWidget {
   const LibrarySearchField({super.key, required this.state});
 
   final BookViewState state;
-
-  @override
-  Size get preferredSize => const Size.fromHeight(64);
 
   @override
   Widget build(BuildContext context) {
@@ -48,8 +42,8 @@ class LibrarySearchField extends StatelessWidget
       }
     }
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+    return Semantics(
+      button: true,
       child: Material(
         color: scheme.surfaceContainerLowest,
         shape: const StadiumBorder(),
@@ -113,42 +107,39 @@ class LibraryFilterBar extends StatelessWidget {
       onSelected: (_) => bloc.add(SetLibraryFilter(value)),
     );
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (state.canFilter)
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: Row(
-              spacing: 8,
-              children: [
-                chip(l10n.filterAll, LibraryFilter.all),
-                chip(l10n.filterUnread, LibraryFilter.unread),
-                chip(l10n.filterRead, LibraryFilter.read),
-                ActionChip(
-                  avatar: const Icon(Icons.collections_bookmark_outlined),
-                  label: Text(l10n.filterShelves),
-                  onPressed:
-                      () => Navigator.of(
-                        context,
-                      ).push(AppRoute.page(const ShelfViewPage())),
-                ),
-                FilterChip(
-                  label: Text(
-                    filter.kind == LibraryFilterKind.format
-                        ? l10n.filterFormatValue(filter.format!.toUpperCase())
-                        : l10n.filterFormat,
-                  ),
-                  selected: filter.kind == LibraryFilterKind.format,
-                  avatar: const Icon(Icons.arrow_drop_down_rounded),
-                  onSelected: (_) => _pickFormat(context),
-                ),
-              ],
+    // One row: filters, then the sort control naming the active order.
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+      child: Row(
+        spacing: 8,
+        children: [
+          if (state.canFilter) ...[
+            chip(l10n.filterAll, LibraryFilter.all),
+            chip(l10n.filterUnread, LibraryFilter.unread),
+            chip(l10n.filterRead, LibraryFilter.read),
+            ActionChip(
+              avatar: const Icon(Icons.collections_bookmark_outlined),
+              label: Text(l10n.filterShelves),
+              onPressed:
+                  () => Navigator.of(
+                    context,
+                  ).push(AppRoute.page(const ShelfViewPage())),
             ),
-          ),
-        _SortRow(state: state),
-      ],
+            FilterChip(
+              label: Text(
+                filter.kind == LibraryFilterKind.format
+                    ? l10n.filterFormatValue(filter.format!.toUpperCase())
+                    : l10n.filterFormat,
+              ),
+              selected: filter.kind == LibraryFilterKind.format,
+              avatar: const Icon(Icons.arrow_drop_down_rounded),
+              onSelected: (_) => _pickFormat(context),
+            ),
+          ],
+          _SortChip(state: state),
+        ],
+      ),
     );
   }
 
@@ -196,17 +187,16 @@ class LibraryFilterBar extends StatelessWidget {
   }
 }
 
-/// "Sort: Newest first" with a menu that marks the active order. Filtered
-/// lists come in server order and can't be re-sorted.
-class _SortRow extends StatelessWidget {
-  const _SortRow({required this.state});
+/// Sort as a chip naming the active order, with a menu that marks it.
+/// Filtered lists come in server order and can't be re-sorted.
+class _SortChip extends StatelessWidget {
+  const _SortChip({required this.state});
 
   final BookViewState state;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final scheme = Theme.of(context).colorScheme;
     final options = <String, String>{
       'added:desc': l10n.newestFirst,
       'title:asc': l10n.titleAZ,
@@ -226,84 +216,42 @@ class _SortRow extends StatelessWidget {
             : state.sortBy.isEmpty
             ? 'added:desc'
             : '${state.sortBy}:${state.sortOrder}';
-    final sortable = state.filter.isAll && !state.isOpds;
-    final label =
-        sortable
-            ? l10n.sortedBy(options[current] ?? l10n.newestFirst)
-            : l10n.serverOrder;
+    if (!state.filter.isAll || state.isOpds) {
+      return Chip(
+        avatar: const Icon(Icons.swap_vert_rounded),
+        label: Text(l10n.serverOrder),
+      );
+    }
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 8, 0),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label.toUpperCase(),
-              style: AppTheme.counterStyle.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-          if (sortable)
-            PopupMenuButton<String>(
-              tooltip: l10n.sorting,
-              icon: const Icon(Icons.swap_vert_rounded),
-              initialValue: current,
-              onSelected: (value) {
-                final bloc = context.read<BookViewBloc>();
-                if (value == 'series:folders') {
-                  bloc.add(const EnterSeriesFolderMode());
-                  return;
-                }
-                final parts = value.split(':');
-                bloc.add(ChangeSort(sortBy: parts[0], sortOrder: parts[1]));
-              },
-              itemBuilder:
-                  (_) => [
-                    for (final MapEntry(:key, :value) in options.entries)
-                      CheckedPopupMenuItem(
-                        value: key,
-                        checked: key == current,
-                        child: Text(value),
-                      ),
-                  ],
-            )
-          else
-            const SizedBox(height: 48),
-        ],
-      ),
-    );
-  }
-}
-
-/// "Library" plus the book count and server in condensed caps.
-class LibraryTitle extends StatelessWidget {
-  const LibraryTitle({super.key, required this.server, this.count});
-
-  final String server;
-  final int? count;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final desk = context.desk;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(l10n.navLibrary),
-        if (server.isNotEmpty)
-          Text(
-            (count == null ? server : l10n.libraryCountServer(count!, server))
-                .toUpperCase(),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: AppTheme.counterStyle.copyWith(
-              color: desk.onShellMuted,
-              fontSize: 13,
-            ),
+    return MenuAnchor(
+      menuChildren: [
+        for (final MapEntry(:key, :value) in options.entries)
+          MenuItemButton(
+            leadingIcon:
+                key == current
+                    ? const Icon(Icons.check_rounded)
+                    : const SizedBox(width: 24),
+            onPressed: () {
+              final bloc = context.read<BookViewBloc>();
+              if (key == 'series:folders') {
+                bloc.add(const EnterSeriesFolderMode());
+                return;
+              }
+              final parts = key.split(':');
+              bloc.add(ChangeSort(sortBy: parts[0], sortOrder: parts[1]));
+            },
+            child: Text(value),
           ),
       ],
+      builder:
+          (context, controller, _) => ActionChip(
+            avatar: const Icon(Icons.swap_vert_rounded),
+            tooltip: l10n.sorting,
+            label: Text(options[current] ?? l10n.newestFirst),
+            onPressed:
+                () =>
+                    controller.isOpen ? controller.close() : controller.open(),
+          ),
     );
   }
 }

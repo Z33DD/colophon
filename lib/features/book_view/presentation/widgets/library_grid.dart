@@ -1,4 +1,5 @@
 import 'package:calibre_web_companion/core/services/download_manager.dart';
+import 'package:calibre_web_companion/core/services/reading_progress_index.dart';
 import 'package:calibre_web_companion/features/book_view/data/models/book_view_model.dart';
 import 'package:calibre_web_companion/l10n/app_localizations.dart';
 import 'package:calibre_web_companion/shared/ui/book_cover.dart';
@@ -16,12 +17,20 @@ double coverExtentFor(int columnSetting) => 420 / columnSetting.clamp(1, 6);
 /// State stamps for [book], from what the app knows locally and from the
 /// server. Only facts: read status and whether a copy is on this device.
 List<StampKind> stampsFor(BookViewModel book, {bool? onDevice}) => [
-  if (book.readStatus) const ReadStamp(),
+  if (book.readStatus)
+    const ReadStamp()
+  else if (_progress(book.uuid) case final percent?)
+    ProgressStamp(percent),
   if (onDevice ??
       GetIt.instance.isRegistered<DownloadManager>() &&
           GetIt.instance<DownloadManager>().isBookDownloaded(book.uuid))
     const OnDeviceStamp(),
 ];
+
+int? _progress(String uuid) =>
+    GetIt.instance.isRegistered<ReadingProgressIndex>()
+        ? GetIt.instance<ReadingProgressIndex>().stampPercentFor(uuid)
+        : null;
 
 /// The cover wall: adaptive columns of jackets with title and author.
 class LibraryGrid extends StatelessWidget {

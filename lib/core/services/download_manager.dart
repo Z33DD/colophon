@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -124,8 +125,16 @@ class DownloadManager {
     return true;
   }
 
+  final _changes = StreamController<void>.broadcast();
+
+  /// Fires after the set of downloaded books changes (added, removed or
+  /// pruned), so views like On device can reload instead of showing the
+  /// list from when they were first built.
+  Stream<void> get changes => _changes.stream;
+
   Future<void> _save() async {
     await _prefs.setString(_storageKey, json.encode(_downloadedBooks));
+    _changes.add(null);
   }
 
   bool isBookDownloaded(String uuid) {

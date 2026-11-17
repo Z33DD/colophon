@@ -16,6 +16,7 @@ class BookHeader extends StatelessWidget {
     required this.isRead,
     required this.isArchived,
     required this.onDevice,
+    this.progressPercent,
     this.onToggleRead,
     this.onToggleArchived,
     this.onAuthorTap,
@@ -29,6 +30,9 @@ class BookHeader extends StatelessWidget {
   final bool isRead;
   final bool isArchived;
   final bool onDevice;
+
+  /// Reading progress to stamp on the cover (started, not finished).
+  final int? progressPercent;
 
   /// Null hides the toggle (server without read status).
   final VoidCallback? onToggleRead;
@@ -108,7 +112,10 @@ class BookHeader extends StatelessWidget {
             bookId: book.id,
             coverUrl: book.cover,
             stamps: [
-              if (isRead) const ReadStamp(),
+              if (isRead)
+                const ReadStamp()
+              else if (progressPercent != null)
+                ProgressStamp(progressPercent!),
               if (onDevice) const OnDeviceStamp(),
             ],
           ),

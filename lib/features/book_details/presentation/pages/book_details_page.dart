@@ -6,6 +6,7 @@ import 'package:calibre_web_companion/core/di/injection_container.dart';
 import 'package:calibre_web_companion/core/navigation/app_route.dart';
 import 'package:calibre_web_companion/core/services/kosync_service.dart';
 import 'package:calibre_web_companion/core/services/library_events.dart';
+import 'package:calibre_web_companion/core/services/reading_progress_index.dart';
 import 'package:calibre_web_companion/core/services/server_capabilities.dart';
 import 'package:calibre_web_companion/core/services/snackbar.dart';
 import 'package:calibre_web_companion/core/services/webdav_sync_service.dart';
@@ -281,6 +282,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
             (page, pageCount) =>
                 _pushReadingProgressToWidget(bookUuid, page, pageCount),
       );
+      await _recordProgress(bookUuid, percentage);
       if (context.mounted) _autoMarkAsRead(context, percentage);
       return;
     }
@@ -346,6 +348,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
     }
 
     _readerProgressTimer?.cancel();
+    await _recordProgress(bookUuid, _koSyncPercentage);
     if (context.mounted) _autoMarkAsRead(context, _koSyncPercentage);
     await _saveReaderProgressToCloud(bookUuid);
     await _pushKoSyncProgress();
@@ -353,6 +356,14 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
     // Re-read rather than reuse what was pushed: the server keeps the furthest
     // position, so a push from behind another device leaves that one standing.
     await _loadKoSyncProgress();
+  }
+
+  /// Keeps the last percentage for covers and "Continue · 64%".
+  Future<void> _recordProgress(String bookUuid, double? percentage) async {
+    if (percentage == null) return;
+    await getIt<ReadingProgressIndex>().record(bookUuid, percentage);
+    if (mounted) setState(() {});
+    _publish(BookChange.progress);
   }
 
   void _autoMarkAsRead(BuildContext context, double? percentage) {
@@ -1168,6 +1179,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
       isRead: state.isBookRead,
       isArchived: state.isBookArchived,
       onDevice: state.isDownloaded,
+      progressPercent: getIt<ReadingProgressIndex>().stampPercentFor(book.uuid),
       busyRead: state.readStatusState == ReadStatusState.loading,
       busyArchived: state.archiveStatusState == ArchiveStatusState.loading,
       onToggleRead:
@@ -1390,7 +1402,12 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
             ? PrimaryActionButton(
               BarAction(
                 icon: Icons.auto_stories_rounded,
-                label: localizations.read,
+                label: switch (getIt<ReadingProgressIndex>().stampPercentFor(
+                  book.uuid,
+                )) {
+                  final percent? => localizations.continueReading(percent),
+                  null => localizations.read,
+                },
                 progress:
                     state.openInInternalReaderState ==
                             OpenInInternalReaderState.loading

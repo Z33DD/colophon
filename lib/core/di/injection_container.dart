@@ -7,6 +7,7 @@ import 'package:calibre_web_companion/core/services/download_manager.dart';
 import 'package:calibre_web_companion/core/services/kosync_service.dart';
 import 'package:calibre_web_companion/core/services/library_events.dart';
 import 'package:calibre_web_companion/core/services/reader_cache_service.dart';
+import 'package:calibre_web_companion/core/services/reading_progress_index.dart';
 import 'package:calibre_web_companion/core/services/tag_service.dart';
 import 'package:calibre_web_companion/core/services/webdav_sync_service.dart';
 import 'package:calibre_web_companion/core/services/widget_service.dart';
@@ -81,6 +82,9 @@ Future<void> init() async {
   // Services
   getIt.registerLazySingleton<ApiService>(ApiService.new);
   getIt.registerLazySingleton<LibraryEvents>(LibraryEvents.new);
+  getIt.registerLazySingleton<ReadingProgressIndex>(
+    () => ReadingProgressIndex(getIt<SharedPreferences>()),
+  );
   getIt.registerLazySingleton<TagService>(
     () => TagService(apiService: getIt<ApiService>(), logger: logger),
   );

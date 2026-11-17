@@ -268,8 +268,8 @@ class BookViewBloc extends Bloc<BookViewEvent, BookViewState> {
             ],
           ),
         );
-      case BookChange.download:
-        // Same books, new On device stamp.
+      case BookChange.download || BookChange.progress:
+        // Same books, new On device or progress stamp.
         emit(state.copyWith(localRevision: state.localRevision + 1));
       case BookChange.metadata || BookChange.shelves:
         add(const RefreshBooks());

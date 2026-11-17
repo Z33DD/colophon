@@ -27,7 +27,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class BookViewPage extends StatefulWidget {
   const BookViewPage({super.key});
@@ -92,18 +91,21 @@ class _BookViewPageState extends State<BookViewPage> {
         }
       },
       builder: (context, state) {
-        final baseUrl =
-            GetIt.instance<SharedPreferences>().getString('base_url') ?? '';
+        // Compact header: the search pill is the title; filters and sort
+        // share one row below it.
         return Scaffold(
           appBar: AppBar(
             toolbarHeight: 64,
-            title: LibraryTitle(server: Uri.tryParse(baseUrl)?.host ?? ''),
+            titleSpacing: 12,
+            title:
+                state.isOpds
+                    ? Text(localizations.navLibrary)
+                    : LibrarySearchField(state: state),
             actions: [
               if (state.multiLibrary) _buildLibrarySelector(context, state),
               const BookViewModeSelector(),
               const AccountButton(),
             ],
-            bottom: state.isOpds ? null : LibrarySearchField(state: state),
           ),
           body: Column(
             children: [

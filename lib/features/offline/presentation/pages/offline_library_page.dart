@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:calibre_web_companion/core/services/download_manager.dart';
@@ -29,10 +30,23 @@ class _OfflineLibraryPageState extends State<OfflineLibraryPage> {
   bool _opening = false;
   bool _loaded = false;
 
+  StreamSubscription<void>? _downloadChanges;
+
   @override
   void initState() {
     super.initState();
     _load();
+    // This page stays alive in the navigation stack: reload when a book
+    // is downloaded or removed anywhere, or it never shows new downloads.
+    _downloadChanges = GetIt.instance<DownloadManager>().changes.listen(
+      (_) => _load(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _downloadChanges?.cancel();
+    super.dispose();
   }
 
   Future<void> _load() async {
