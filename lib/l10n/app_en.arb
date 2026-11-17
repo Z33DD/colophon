@@ -835,5 +835,15 @@
   "deviceKindle": "Kindle",
   "sendFormat": "Format",
   "sendMethodLabel": "Send with",
-  "deviceLabel": "Device"
+  "deviceLabel": "Device",
+  "onDeviceEmptyTitle": "No books on this device yet",
+  "onDeviceEmptyMessage": "Download a book, or open one in the reader, and it appears here so you can read it without your server.",
+  "removeFromDeviceFailed": "Couldn't remove {title} from this device",
+  "@removeFromDeviceFailed": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  }
 }

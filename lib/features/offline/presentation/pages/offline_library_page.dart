@@ -10,6 +10,7 @@ import 'package:calibre_web_companion/features/reader/data/epub_bookmark_source.
 import 'package:calibre_web_companion/features/reader/data/internal_reader_formats.dart';
 import 'package:calibre_web_companion/features/reader/presentation/page_reader_launcher.dart';
 import 'package:calibre_web_companion/l10n/app_localizations.dart';
+import 'package:calibre_web_companion/shared/ui/status_view.dart';
 import 'package:cosmos_epub/cosmos_epub.dart';
 import 'package:docman/docman.dart';
 import 'package:flutter/material.dart';
@@ -26,6 +27,7 @@ class _OfflineLibraryPageState extends State<OfflineLibraryPage> {
   List<OfflineBookModel> _books = const [];
   Set<String> _cachedOnly = const {};
   bool _opening = false;
+  bool _loaded = false;
 
   @override
   void initState() {
@@ -70,6 +72,7 @@ class _OfflineLibraryPageState extends State<OfflineLibraryPage> {
 
     if (!mounted) return;
     setState(() {
+      _loaded = true;
       _books = books;
       _cachedOnly = cachedOnly;
     });
@@ -170,7 +173,7 @@ class _OfflineLibraryPageState extends State<OfflineLibraryPage> {
     } catch (e) {
       if (mounted) {
         context.showSnackBar(
-          '${localizations.errorOpeningBook} $e',
+          localizations.removeFromDeviceFailed(book.title),
           isError: true,
         );
       }
@@ -244,11 +247,18 @@ class _OfflineLibraryPageState extends State<OfflineLibraryPage> {
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
 
+    if (!_loaded) {
+      return StatusView.loading(label: localizations.loading);
+    }
     if (_books.isEmpty) {
-      return _buildEmptyState(context, localizations);
+      return StatusView.empty(
+        icon: Icons.download_for_offline_outlined,
+        title: localizations.onDeviceEmptyTitle,
+        message: localizations.onDeviceEmptyMessage,
+      );
     }
 
-    return GridView.builder(
+    final grid = GridView.builder(
       padding: const EdgeInsets.all(16),
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
         maxCrossAxisExtent: 220,
@@ -259,6 +269,13 @@ class _OfflineLibraryPageState extends State<OfflineLibraryPage> {
       itemCount: _books.length,
       itemBuilder: (context, index) => _buildCard(context, _books[index]),
     );
+    // Opening can take a moment (copying out of the folder): show it.
+    return Column(
+      children: [
+        if (_opening) const LinearProgressIndicator(minHeight: 2),
+        Expanded(child: grid),
+      ],
+    );
   }
 
   Widget _buildCard(BuildContext context, OfflineBookModel book) {
@@ -268,8 +285,8 @@ class _OfflineLibraryPageState extends State<OfflineLibraryPage> {
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
+        // Remove lives in the menu; a long-press never deletes.
         onTap: _opening ? null : () => _open(book),
-        onLongPress: _opening ? null : () => _remove(book),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -369,36 +386,6 @@ class _OfflineLibraryPageState extends State<OfflineLibraryPage> {
       fit: BoxFit.cover,
       width: double.infinity,
       errorBuilder: (_, _, _) => placeholder,
-    );
-  }
-
-  Widget _buildEmptyState(
-    BuildContext context,
-    AppLocalizations localizations,
-  ) {
-    final theme = Theme.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.cloud_off_rounded,
-              size: 64,
-              color: theme.colorScheme.primary.withValues(alpha: .5),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              localizations.noDownloadsFound,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: .7),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
