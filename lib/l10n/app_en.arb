@@ -451,7 +451,7 @@
   "deselectAll": "Deselect All",
   "selectAll": "Select All",
   "useAuthorSort": "Use 'Author Sort'",
-  "account": "Acount",
+  "account": "Account",
   "accounts": "Accounts",
   "addAnotherAccount": "Add another account",
   "switchAccount": "Switch account",
@@ -706,5 +706,11 @@
         "type": "String"
       }
     }
-  }
+  },
+  "navLibrary": "Library",
+  "navOnDevice": "On device",
+  "navRequests": "Requests",
+  "offlineDiagnose": "Diagnose",
+  "offlineShellBanner": "Can't reach your server. Downloaded books are still available.",
+  "needsServer": "Needs your server"
 }

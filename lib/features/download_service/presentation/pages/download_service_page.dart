@@ -3,6 +3,7 @@ import 'package:calibre_web_companion/features/download_service/bloc/download_se
 import 'package:calibre_web_companion/features/download_service/bloc/download_service_state.dart';
 import 'package:calibre_web_companion/features/download_service/presentation/widgets/downloads_tab_widget.dart';
 import 'package:calibre_web_companion/features/download_service/presentation/widgets/search_tab_widget.dart';
+import 'package:calibre_web_companion/features/me/presentation/widgets/account_button.dart';
 import 'package:calibre_web_companion/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -52,7 +53,10 @@ class _DownloadServicePageState extends State<DownloadServicePage>
     return BlocBuilder<DownloadServiceBloc, DownloadServiceState>(
       builder: (context, state) {
         return Scaffold(
-          appBar: AppBar(title: Text(localizations.downloadService)),
+          appBar: AppBar(
+            title: Text(localizations.navRequests),
+            actions: const [AccountButton()],
+          ),
           body: Column(
             children: [
               TabBar(

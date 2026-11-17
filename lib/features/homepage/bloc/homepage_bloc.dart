@@ -4,10 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 class HomePageBloc extends Bloc<HomePageEvent, HomePageState> {
   HomePageBloc() : super(const HomePageState()) {
-    on<ChangeNavIndex>(_onChangeNavIndex);
-  }
-
-  void _onChangeNavIndex(ChangeNavIndex event, Emitter<HomePageState> emit) {
-    emit(state.copyWith(currentNavIndex: event.index));
+    on<SelectDestination>(
+      (event, emit) => emit(state.copyWith(destination: event.destination)),
+    );
   }
 }

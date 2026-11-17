@@ -4,6 +4,7 @@ import 'package:calibre_web_companion/features/discover/blocs/discover_bloc.dart
 import 'package:calibre_web_companion/features/discover/blocs/discover_event.dart';
 import 'package:calibre_web_companion/features/discover/blocs/discover_state.dart';
 import 'package:calibre_web_companion/features/discover_details/presentation/pages/discover_details_page.dart';
+import 'package:calibre_web_companion/features/me/presentation/widgets/account_button.dart';
 import 'package:calibre_web_companion/features/opds_browser/cubit/opds_feed_cubit.dart';
 import 'package:calibre_web_companion/features/opds_browser/presentation/pages/opds_feed_page.dart';
 import 'package:calibre_web_companion/features/settings/bloc/settings_bloc.dart';
@@ -48,8 +49,15 @@ class DiscoverPage extends StatelessWidget {
             body = _buildConfiguredBody(context, localizations, settingsState);
           }
 
-          return SafeArea(
-            child: Scaffold(body: SingleChildScrollView(child: body)),
+          return Scaffold(
+            appBar: AppBar(
+              title: Text(localizations.discover),
+              actions: const [AccountButton()],
+            ),
+            body: SafeArea(
+              top: false,
+              child: SingleChildScrollView(child: body),
+            ),
           );
         },
       ),

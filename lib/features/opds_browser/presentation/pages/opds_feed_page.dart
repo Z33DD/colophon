@@ -3,6 +3,7 @@ import 'package:calibre_web_companion/core/services/api_service.dart';
 import 'package:calibre_web_companion/features/book_details/presentation/pages/book_details_page.dart';
 import 'package:calibre_web_companion/features/book_view/bloc/book_view_bloc.dart';
 import 'package:calibre_web_companion/features/book_view/data/models/book_view_model.dart';
+import 'package:calibre_web_companion/features/me/presentation/widgets/account_button.dart';
 import 'package:calibre_web_companion/features/offline/cubit/connectivity_cubit.dart';
 import 'package:calibre_web_companion/features/opds_browser/cubit/opds_feed_cubit.dart';
 import 'package:calibre_web_companion/features/opds_browser/data/datasources/opds_browser_datasource.dart';
@@ -91,6 +92,8 @@ class OpdsFeedPage extends StatelessWidget {
                     tooltip: localizations.search,
                     onPressed: () => showOpdsSearchDialog(context),
                   ),
+                // Only the root feed is a top-level destination.
+                if (url == null) const AccountButton(),
               ],
             ),
             body: const OpdsFeedView(),

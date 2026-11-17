@@ -10,6 +10,7 @@ import 'package:calibre_web_companion/features/book_view/data/models/book_view_m
 import 'package:calibre_web_companion/features/book_view/presentation/pages/series_detail_page.dart';
 import 'package:calibre_web_companion/features/book_view/presentation/widgets/search_dialog.dart';
 import 'package:calibre_web_companion/features/book_view/presentation/widgets/series_folder_card.dart';
+import 'package:calibre_web_companion/features/me/presentation/widgets/account_button.dart';
 import 'package:calibre_web_companion/features/offline/cubit/connectivity_cubit.dart';
 import 'package:calibre_web_companion/features/offline/data/services/offline_backfill_service.dart';
 import 'package:calibre_web_companion/features/scan_book/presentation/pages/scan_book_page.dart';
@@ -100,13 +101,14 @@ class _BookViewPageState extends State<BookViewPage> {
                       state.searchQuery!,
                       localizations,
                     )
-                    : Text(localizations.books),
+                    : Text(localizations.navLibrary),
             actions: [
               if (state.multiLibrary) _buildLibrarySelector(context, state),
               const BookViewModeSelector(),
               if (!state.isOpds)
                 _buildSortOptions(context, state, localizations),
               if (!isSearching) _buildSearchButton(context, localizations),
+              const AccountButton(),
             ],
           ),
           body: _buildBody(context, state, localizations),

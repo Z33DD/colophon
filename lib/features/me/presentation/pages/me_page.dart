@@ -81,7 +81,7 @@ class MePage extends StatelessWidget {
           builder: (context, state) {
             return Scaffold(
               appBar: AppBar(
-                title: Text(localizations.me),
+                title: Text(localizations.account),
                 actions: [
                   IconButton(
                     onPressed: () {

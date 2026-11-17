@@ -1,3 +1,4 @@
+import 'package:calibre_web_companion/features/homepage/app_destination.dart';
 import 'package:equatable/equatable.dart';
 
 abstract class HomePageEvent extends Equatable {
@@ -7,11 +8,12 @@ abstract class HomePageEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-class ChangeNavIndex extends HomePageEvent {
-  final int index;
+/// Show [destination]. The shell falls back to Library when it is hidden.
+class SelectDestination extends HomePageEvent {
+  final AppDestination destination;
 
-  const ChangeNavIndex(this.index);
+  const SelectDestination(this.destination);
 
   @override
-  List<Object?> get props => [index];
+  List<Object?> get props => [destination];
 }

@@ -24,6 +24,7 @@ import 'package:calibre_web_companion/features/discover_details/bloc/discover_de
 import 'package:calibre_web_companion/features/download_service/bloc/download_service_bloc.dart';
 import 'package:calibre_web_companion/features/download_service/bloc/download_service_event.dart'
     hide SearchBooks;
+import 'package:calibre_web_companion/features/homepage/app_destination.dart';
 import 'package:calibre_web_companion/features/homepage/bloc/homepage_bloc.dart';
 import 'package:calibre_web_companion/features/homepage/bloc/homepage_event.dart';
 import 'package:calibre_web_companion/features/homepage/presentation/pages/home_page.dart';
@@ -330,7 +331,9 @@ class _MyAppState extends State<MyApp> {
 
     switch (action) {
       case 'search':
-        context.read<HomePageBloc>().add(const ChangeNavIndex(0));
+        context.read<HomePageBloc>().add(
+          const SelectDestination(AppDestination.library),
+        );
         final query = await showDialog<String>(
           context: context,
           builder: (_) => const SearchDialog(),
@@ -346,9 +349,10 @@ class _MyAppState extends State<MyApp> {
           context.read<BookViewBloc>().add(const RefreshBooks());
         }
       case 'downloads':
-        final showsDiscover =
-            getIt<SharedPreferences>().getString('server_type') != 'calibre';
-        context.read<HomePageBloc>().add(ChangeNavIndex(showsDiscover ? 3 : 2));
+        // Resolved by the shell: falls back to Library when Shelfmark is off.
+        context.read<HomePageBloc>().add(
+          const SelectDestination(AppDestination.requests),
+        );
     }
   }
 

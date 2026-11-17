@@ -1,16 +1,14 @@
+import 'package:calibre_web_companion/features/homepage/app_destination.dart';
 import 'package:equatable/equatable.dart';
 
 class HomePageState extends Equatable {
-  final int currentNavIndex;
+  final AppDestination destination;
 
-  const HomePageState({this.currentNavIndex = 0});
+  const HomePageState({this.destination = AppDestination.library});
 
-  HomePageState copyWith({int? currentNavIndex}) {
-    return HomePageState(
-      currentNavIndex: currentNavIndex ?? this.currentNavIndex,
-    );
-  }
+  HomePageState copyWith({AppDestination? destination}) =>
+      HomePageState(destination: destination ?? this.destination);
 
   @override
-  List<Object?> get props => [currentNavIndex];
+  List<Object?> get props => [destination];
 }
