@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:calibre_web_companion/core/di/injection_container.dart';
 import 'package:calibre_web_companion/core/services/app_transition.dart';
+import 'package:calibre_web_companion/core/services/download_folder_resolver.dart';
 import 'package:calibre_web_companion/core/services/kosync_service.dart';
 import 'package:calibre_web_companion/core/services/server_capabilities.dart';
 import 'package:calibre_web_companion/core/services/snackbar.dart';
@@ -434,34 +434,23 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
     AppLocalizations localizations,
   ) async {
     final settingsState = context.read<SettingsBloc>().state;
-    DocumentFile? selectedDirectory;
+    final resolution = await DownloadFolderResolver().resolve(
+      defaultFolderUri: settingsState.defaultDownloadPath,
+    );
 
-    if (Platform.isAndroid) {
-      if (settingsState.defaultDownloadPath.isEmpty) {
-        selectedDirectory = await DocMan.pick.directory();
-        if (selectedDirectory == null) {
-          if (context.mounted) {
-            context.showSnackBar(
-              localizations.noFolderWasSelected,
-              isError: true,
-            );
-          }
-          return;
+    final DocumentFile? selectedDirectory;
+    switch (resolution) {
+      case FolderResolved(:final folder):
+        selectedDirectory = folder;
+      case FolderPickCancelled() || FolderUnavailable():
+        // Stay on book details: a cancelled picker is not navigation.
+        if (context.mounted) {
+          context.showSnackBar(
+            localizations.noFolderWasSelected,
+            isError: true,
+          );
         }
-      } else {
-        final uri = settingsState.defaultDownloadPath;
-        selectedDirectory =
-            uri.isNotEmpty ? await DocumentFile.fromUri(uri) : null;
-        if (selectedDirectory == null || !selectedDirectory.isDirectory) {
-          if (context.mounted) {
-            context.showSnackBar(
-              localizations.noFolderWasSelected,
-              isError: true,
-            );
-          }
-          return;
-        }
-      }
+        return;
     }
 
     if (!context.mounted) return;
@@ -1540,50 +1529,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
             onPressed:
                 isLoading
                     ? null
-                    : () async {
-                      DocumentFile? selectedDirectory;
-
-                      if (Platform.isAndroid) {
-                        if (settingsState.defaultDownloadPath.isEmpty) {
-                          selectedDirectory = await DocMan.pick.directory();
-                          if (selectedDirectory == null) {
-                            // ignore: use_build_context_synchronously
-                            Navigator.pop(context);
-
-                            // ignore: use_build_context_synchronously
-                            context.showSnackBar(
-                              localizations.noFolderWasSelected,
-                              isError: true,
-                            );
-                            return;
-                          }
-                        } else {
-                          final uri = settingsState.defaultDownloadPath;
-                          selectedDirectory =
-                              uri.isNotEmpty
-                                  ? await DocumentFile.fromUri(uri)
-                                  : null;
-                          if (selectedDirectory == null ||
-                              !selectedDirectory.isDirectory) {
-                            // ignore: use_build_context_synchronously
-                            context.showSnackBar(
-                              localizations.noFolderWasSelected,
-                              isError: true,
-                            );
-                            return;
-                          }
-                        }
-                      }
-
-                      // ignore: use_build_context_synchronously
-                      context.read<BookDetailsBloc>().add(
-                        OpenBookInReader(
-                          selectedDirectory: selectedDirectory,
-                          schema: settingsState.downloadSchema,
-                          pathTemplate: settingsState.downloadPathTemplate,
-                        ),
-                      );
-                    },
+                    : () => _triggerExternalReader(context, localizations),
             tooltip: localizations.openInReader,
           ),
       BookDetailsAction.openInBrowser.key:
