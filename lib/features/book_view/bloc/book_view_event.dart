@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:calibre_web_companion/core/services/library_events.dart';
 import 'package:calibre_web_companion/features/book_view/data/models/library_filter.dart';
 import 'package:equatable/equatable.dart';
 
@@ -109,4 +110,14 @@ class UploadCancel extends BookViewEvent {
 
 class ResetUploadStatus extends BookViewEvent {
   const ResetUploadStatus();
+}
+
+/// A book changed elsewhere in the app (see LibraryEvents).
+class ApplyBookChange extends BookViewEvent {
+  final BookChanged change;
+
+  const ApplyBookChange(this.change);
+
+  @override
+  List<Object?> get props => [change.bookId, change.change, change.read];
 }

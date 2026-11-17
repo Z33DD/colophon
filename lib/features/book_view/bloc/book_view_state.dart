@@ -39,6 +39,9 @@ class BookViewState extends Equatable {
   /// The server can serve filtered lists (Calibre-Web and its forks).
   final bool canFilter;
 
+  /// Bumped when device-local facts (downloads) change, to redraw stamps.
+  final int localRevision;
+
   const BookViewState({
     this.books = const [],
     this.isLoading = false,
@@ -65,6 +68,7 @@ class BookViewState extends Equatable {
     this.filterNextUrl,
     this.searchScope = SearchScope.any,
     this.canFilter = false,
+    this.localRevision = 0,
   });
 
   BookViewState copyWith({
@@ -93,6 +97,7 @@ class BookViewState extends Equatable {
     String? Function()? filterNextUrl,
     SearchScope? searchScope,
     bool? canFilter,
+    int? localRevision,
   }) {
     return BookViewState(
       books: books ?? this.books,
@@ -123,6 +128,7 @@ class BookViewState extends Equatable {
           filterNextUrl != null ? filterNextUrl() : this.filterNextUrl,
       searchScope: searchScope ?? this.searchScope,
       canFilter: canFilter ?? this.canFilter,
+      localRevision: localRevision ?? this.localRevision,
     );
   }
 
@@ -153,5 +159,6 @@ class BookViewState extends Equatable {
     filterNextUrl,
     searchScope,
     canFilter,
+    localRevision,
   ];
 }

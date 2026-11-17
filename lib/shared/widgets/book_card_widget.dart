@@ -11,6 +11,9 @@ class BookCard extends StatelessWidget {
   final bool readStatus;
   final String? topLeftBadge;
 
+  /// Optional secondary action, e.g. remove from shelf.
+  final VoidCallback? onLongPress;
+
   const BookCard({
     super.key,
     required this.bookId,
@@ -21,6 +24,7 @@ class BookCard extends StatelessWidget {
     this.coverUrl,
     this.readStatus = false,
     this.topLeftBadge,
+    this.onLongPress,
   });
 
   @override
@@ -149,7 +153,7 @@ class BookCard extends StatelessWidget {
               child: InkWell(
                 borderRadius: borderRadius,
                 onTap: isLoading ? null : onTap,
-                onLongPress: isLoading ? null : () {},
+                onLongPress: isLoading ? null : onLongPress,
               ),
             ),
           ),

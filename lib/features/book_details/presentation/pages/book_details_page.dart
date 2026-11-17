@@ -6,6 +6,7 @@ import 'package:calibre_web_companion/core/di/injection_container.dart';
 import 'package:calibre_web_companion/core/navigation/app_route.dart';
 import 'package:calibre_web_companion/core/services/download_folder_resolver.dart';
 import 'package:calibre_web_companion/core/services/kosync_service.dart';
+import 'package:calibre_web_companion/core/services/library_events.dart';
 import 'package:calibre_web_companion/core/services/server_capabilities.dart';
 import 'package:calibre_web_companion/core/services/snackbar.dart';
 import 'package:calibre_web_companion/core/services/webdav_sync_service.dart';
@@ -71,6 +72,13 @@ class BookDetailsPage extends StatefulWidget {
 
 class _BookDetailsPageState extends State<BookDetailsPage> {
   bool _didUpdateMetadata = false;
+
+  /// Tells every list showing this book that it changed.
+  void _publish(BookChange change, {bool? read}) {
+    if (_bookId <= 0) return;
+    getIt<LibraryEvents>().publish(BookChanged(_bookId, change, read: read));
+  }
+
   bool _didAutoOpen = false;
   int _lastWidgetPercent = -1;
   late final WebDavSyncService _webDavService;
@@ -593,385 +601,366 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        if (mounted) {
-          Navigator.of(context).pop(result ?? _didUpdateMetadata);
-        }
-      },
-      child: BlocProvider(
-        create:
-            (context) =>
-                getIt<BookDetailsBloc>()
-                  ..add(LoadBookDetails(widget.bookViewModel, widget.bookUuid)),
-        child: BlocConsumer<BookDetailsBloc, BookDetailsState>(
-          listenWhen:
-              (previous, current) =>
-                  previous.readStatusState != current.readStatusState ||
-                  previous.archiveStatusState != current.archiveStatusState ||
-                  previous.deleteBookState != current.deleteBookState ||
-                  previous.openInReaderState != current.openInReaderState ||
-                  previous.openInInternalReaderState !=
-                      current.openInInternalReaderState ||
-                  previous.metadataUpdateState != current.metadataUpdateState ||
-                  previous.bookDetails != current.bookDetails ||
-                  previous.seriesNavigationStatus !=
-                      current.seriesNavigationStatus ||
-                  previous.authorNavigationStatus !=
-                      current.authorNavigationStatus,
-          listener: (context, state) {
-            final resolvedId = state.bookDetails?.id ?? 0;
-            if (_bookId <= 0 && resolvedId > 0) {
-              _bookId = resolvedId;
-              _loadKoSyncProgress();
-            }
+    // Changes are broadcast through LibraryEvents, so back is a plain pop and
+    // Android's predictive back gesture works.
+    return BlocProvider(
+      create:
+          (context) =>
+              getIt<BookDetailsBloc>()
+                ..add(LoadBookDetails(widget.bookViewModel, widget.bookUuid)),
+      child: BlocConsumer<BookDetailsBloc, BookDetailsState>(
+        listenWhen:
+            (previous, current) =>
+                previous.readStatusState != current.readStatusState ||
+                previous.archiveStatusState != current.archiveStatusState ||
+                previous.deleteBookState != current.deleteBookState ||
+                previous.openInReaderState != current.openInReaderState ||
+                previous.openInInternalReaderState !=
+                    current.openInInternalReaderState ||
+                previous.metadataUpdateState != current.metadataUpdateState ||
+                previous.bookDetails != current.bookDetails ||
+                previous.seriesNavigationStatus !=
+                    current.seriesNavigationStatus ||
+                previous.authorNavigationStatus !=
+                    current.authorNavigationStatus,
+        listener: (context, state) {
+          final resolvedId = state.bookDetails?.id ?? 0;
+          if (_bookId <= 0 && resolvedId > 0) {
+            _bookId = resolvedId;
+            _loadKoSyncProgress();
+          }
 
-            if (!_didAutoOpen &&
-                widget.autoOpenAction != BookAutoOpen.none &&
-                state.status == BookDetailsStatus.loaded &&
-                state.bookDetails != null) {
-              _didAutoOpen = true;
-              _runAutoOpen(context, state, localizations);
-            }
+          if (!_didAutoOpen &&
+              widget.autoOpenAction != BookAutoOpen.none &&
+              state.status == BookDetailsStatus.loaded &&
+              state.bookDetails != null) {
+            _didAutoOpen = true;
+            _runAutoOpen(context, state, localizations);
+          }
 
-            if (state.readStatusState == ReadStatusState.success) {
-              _didUpdateMetadata = true;
-              context.showSnackBar(
-                state.isBookRead
-                    ? localizations.markedAsReadSuccessfully
-                    : localizations.markedAsUnreadSuccessfully,
-              );
-              context.read<BookDetailsBloc>().add(const ClearSnackBarStates());
-            } else if (state.readStatusState == ReadStatusState.error) {
-              context.showSnackBar(
-                state.isBookRead
-                    ? localizations.markedAsReadFailed
-                    : localizations.markedAsUnreadFailed,
-                isError: true,
-              );
-              context.read<BookDetailsBloc>().add(const ClearSnackBarStates());
-            }
+          if (state.readStatusState == ReadStatusState.success) {
+            _didUpdateMetadata = true;
+            _publish(BookChange.readStatus, read: state.isBookRead);
+            context.showSnackBar(
+              state.isBookRead
+                  ? localizations.markedAsReadSuccessfully
+                  : localizations.markedAsUnreadSuccessfully,
+            );
+            context.read<BookDetailsBloc>().add(const ClearSnackBarStates());
+          } else if (state.readStatusState == ReadStatusState.error) {
+            context.showSnackBar(
+              state.isBookRead
+                  ? localizations.markedAsReadFailed
+                  : localizations.markedAsUnreadFailed,
+              isError: true,
+            );
+            context.read<BookDetailsBloc>().add(const ClearSnackBarStates());
+          }
 
-            if (state.archiveStatusState == ArchiveStatusState.success) {
-              _didUpdateMetadata = true;
-              context.showSnackBar(
-                state.isBookArchived
-                    ? localizations.archivedBookSuccessfully
-                    : localizations.unarchivedBookSuccessfully,
-              );
-              context.read<BookDetailsBloc>().add(const ClearSnackBarStates());
-            } else if (state.archiveStatusState == ArchiveStatusState.error) {
-              context.showSnackBar(
-                state.isBookArchived
-                    ? localizations.archivedBookFailed
-                    : localizations.unarchivedBookFailed,
-                isError: true,
-              );
-              context.read<BookDetailsBloc>().add(const ClearSnackBarStates());
-            }
+          if (state.archiveStatusState == ArchiveStatusState.success) {
+            _didUpdateMetadata = true;
+            _publish(BookChange.archived);
+            context.showSnackBar(
+              state.isBookArchived
+                  ? localizations.archivedBookSuccessfully
+                  : localizations.unarchivedBookSuccessfully,
+            );
+            context.read<BookDetailsBloc>().add(const ClearSnackBarStates());
+          } else if (state.archiveStatusState == ArchiveStatusState.error) {
+            context.showSnackBar(
+              state.isBookArchived
+                  ? localizations.archivedBookFailed
+                  : localizations.unarchivedBookFailed,
+              isError: true,
+            );
+            context.read<BookDetailsBloc>().add(const ClearSnackBarStates());
+          }
 
-            if (state.deleteBookState == DeleteBookState.success) {
-              _didUpdateMetadata = true;
-              context.showSnackBar(localizations.bookDeletedSuccessfully);
-              context.read<BookDetailsBloc>().add(const ClearSnackBarStates());
-              Navigator.of(context).pop(true);
-            } else if (state.deleteBookState == DeleteBookState.error) {
-              context.showSnackBar(
-                localizations.failedToDeleteBook,
-                isError: true,
-              );
-              context.read<BookDetailsBloc>().add(const ClearSnackBarStates());
-            }
+          if (state.deleteBookState == DeleteBookState.success) {
+            _didUpdateMetadata = true;
+            _publish(BookChange.deleted);
+            context.showSnackBar(localizations.bookDeletedSuccessfully);
+            context.read<BookDetailsBloc>().add(const ClearSnackBarStates());
+            Navigator.of(context).pop(true);
+          } else if (state.deleteBookState == DeleteBookState.error) {
+            context.showSnackBar(
+              localizations.failedToDeleteBook,
+              isError: true,
+            );
+            context.read<BookDetailsBloc>().add(const ClearSnackBarStates());
+          }
 
-            if (state.openInReaderState == OpenInReaderState.success) {
-              context.showSnackBar(
-                localizations.bookOpenedExternallySuccessfully,
-              );
-              context.read<BookDetailsBloc>().add(const ClearSnackBarStates());
-            } else if (state.openInReaderState == OpenInReaderState.error) {
-              context.showSnackBar(
-                localizations.openBookExternallyFailed,
-                isError: true,
-              );
-              context.read<BookDetailsBloc>().add(const ClearSnackBarStates());
-            }
+          if (state.openInReaderState == OpenInReaderState.success) {
+            context.showSnackBar(
+              localizations.bookOpenedExternallySuccessfully,
+            );
+            context.read<BookDetailsBloc>().add(const ClearSnackBarStates());
+          } else if (state.openInReaderState == OpenInReaderState.error) {
+            context.showSnackBar(
+              localizations.openBookExternallyFailed,
+              isError: true,
+            );
+            context.read<BookDetailsBloc>().add(const ClearSnackBarStates());
+          }
 
-            if (state.openInInternalReaderState ==
-                    OpenInInternalReaderState.success &&
-                state.readerBytes != null) {
-              context.read<BookDetailsBloc>().add(const ClearSnackBarStates());
+          if (state.openInInternalReaderState ==
+                  OpenInInternalReaderState.success &&
+              state.readerBytes != null) {
+            context.read<BookDetailsBloc>().add(const ClearSnackBarStates());
 
-              _openInternalReader(
-                context,
-                state.readerBytes!,
-                state.bookDetails!,
-              );
-            }
+            _openInternalReader(
+              context,
+              state.readerBytes!,
+              state.bookDetails!,
+            );
+          }
 
-            if (state.openInInternalReaderState ==
-                OpenInInternalReaderState.error) {
-              context.showSnackBar(
-                '${localizations.errorOpeningBookInInternalReader} ${state.errorMessage}',
-                isError: true,
-              );
-            }
+          if (state.openInInternalReaderState ==
+              OpenInInternalReaderState.error) {
+            context.showSnackBar(
+              '${localizations.errorOpeningBookInInternalReader} ${state.errorMessage}',
+              isError: true,
+            );
+          }
 
-            if (state.seriesNavigationStatus ==
-                    SeriesNavigationStatus.success &&
-                state.seriesNavigationPath != null) {
-              Navigator.of(context).push(
-                AppRoute.page(
-                  DiscoverDetailsPage(
-                    title: state.bookDetails?.series ?? '',
-                    categoryType: CategoryType.series,
-                    fullPath: state.seriesNavigationPath!,
-                  ),
+          if (state.seriesNavigationStatus == SeriesNavigationStatus.success &&
+              state.seriesNavigationPath != null) {
+            Navigator.of(context).push(
+              AppRoute.page(
+                DiscoverDetailsPage(
+                  title: state.bookDetails?.series ?? '',
+                  categoryType: CategoryType.series,
+                  fullPath: state.seriesNavigationPath!,
                 ),
-              );
-            }
+              ),
+            );
+          }
 
-            if (state.seriesNavigationStatus == SeriesNavigationStatus.error) {
-              context.showSnackBar(
-                localizations.errorLoadingData,
-                isError: true,
-              );
-            }
+          if (state.seriesNavigationStatus == SeriesNavigationStatus.error) {
+            context.showSnackBar(localizations.errorLoadingData, isError: true);
+          }
 
-            if (state.authorNavigationStatus ==
-                    AuthorNavigationStatus.success &&
-                state.authorNavigationPath != null) {
-              Navigator.of(context).push(
-                AppRoute.page(
-                  DiscoverDetailsPage(
-                    title: state.authorNavigationName ?? '',
-                    categoryType: CategoryType.author,
-                    fullPath: state.authorNavigationPath!,
-                  ),
+          if (state.authorNavigationStatus == AuthorNavigationStatus.success &&
+              state.authorNavigationPath != null) {
+            Navigator.of(context).push(
+              AppRoute.page(
+                DiscoverDetailsPage(
+                  title: state.authorNavigationName ?? '',
+                  categoryType: CategoryType.author,
+                  fullPath: state.authorNavigationPath!,
                 ),
-              );
-            }
+              ),
+            );
+          }
 
-            if (state.authorNavigationStatus == AuthorNavigationStatus.error) {
-              context.showSnackBar(
-                localizations.errorLoadingData,
-                isError: true,
-              );
-            }
+          if (state.authorNavigationStatus == AuthorNavigationStatus.error) {
+            context.showSnackBar(localizations.errorLoadingData, isError: true);
+          }
 
-            if (state.metadataUpdateState == MetadataUpdateState.success) {
-              _didUpdateMetadata = true;
+          if (state.metadataUpdateState == MetadataUpdateState.success) {
+            _didUpdateMetadata = true;
+            _publish(BookChange.metadata);
 
-              context.showSnackBar(localizations.metadataUpdateSuccessfully);
-              context.read<BookDetailsBloc>().add(const ClearSnackBarStates());
-            }
-          },
-          buildWhen:
-              (previous, current) =>
-                  previous.status != current.status ||
-                  previous.bookDetails != current.bookDetails ||
-                  previous.isBookRead != current.isBookRead ||
-                  previous.isBookArchived != current.isBookArchived ||
-                  previous.deleteBookState != current.deleteBookState ||
-                  previous.openInReaderState != current.openInReaderState ||
-                  previous.openInInternalReaderState !=
-                      current.openInInternalReaderState ||
-                  previous.metadataUpdateState != current.metadataUpdateState ||
-                  (previous.metadataUpdateState ==
-                          MetadataUpdateState.success &&
-                      current.metadataUpdateState ==
-                          MetadataUpdateState.success),
-          builder: (context, state) {
-            final isLoading = state.status == BookDetailsStatus.loading;
-            final hasError = state.status == BookDetailsStatus.error;
+            context.showSnackBar(localizations.metadataUpdateSuccessfully);
+            context.read<BookDetailsBloc>().add(const ClearSnackBarStates());
+          }
+        },
+        buildWhen:
+            (previous, current) =>
+                previous.status != current.status ||
+                previous.bookDetails != current.bookDetails ||
+                previous.isBookRead != current.isBookRead ||
+                previous.isBookArchived != current.isBookArchived ||
+                previous.deleteBookState != current.deleteBookState ||
+                previous.openInReaderState != current.openInReaderState ||
+                previous.openInInternalReaderState !=
+                    current.openInInternalReaderState ||
+                previous.metadataUpdateState != current.metadataUpdateState ||
+                (previous.metadataUpdateState == MetadataUpdateState.success &&
+                    current.metadataUpdateState == MetadataUpdateState.success),
+        builder: (context, state) {
+          final isLoading = state.status == BookDetailsStatus.loading;
+          final hasError = state.status == BookDetailsStatus.error;
 
-            if (hasError) {
-              return Scaffold(
-                appBar: AppBar(
-                  title: Text(localizations.error),
-                  leading: IconButton(
-                    icon: const Icon(Icons.arrow_back),
-                    onPressed:
-                        () => Navigator.of(context).pop(_didUpdateMetadata),
-                  ),
+          if (hasError) {
+            return Scaffold(
+              appBar: AppBar(
+                title: Text(localizations.error),
+                leading: IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed:
+                      () => Navigator.of(context).pop(_didUpdateMetadata),
                 ),
-                body: Center(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.error_outline_rounded,
-                          size: 80,
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                        const SizedBox(height: 24),
-                        Text(
-                          localizations.errorLoadingData,
-                          style: Theme.of(context).textTheme.headlineSmall,
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          localizations.bookDetailsCouldNotBeLoaded,
-                          style: Theme.of(context).textTheme.bodyMedium,
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 24),
-                        Card(
-                          elevation: 0,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.errorContainer.withValues(alpha: .3),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            side: BorderSide(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.error.withValues(alpha: .5),
-                            ),
-                          ),
-                          child: ExpansionTile(
-                            tilePadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                            ),
-                            iconColor: Theme.of(context).colorScheme.error,
-                            collapsedIconColor:
-                                Theme.of(context).colorScheme.error,
-                            title: Text(
-                              localizations.technicalDetails,
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.error,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  16,
-                                  0,
-                                  16,
-                                  16,
-                                ),
-                                child: SelectableText(
-                                  state.errorMessage ?? 'Unknown Error',
-                                  style: TextStyle(
-                                    color:
-                                        Theme.of(context).colorScheme.onSurface,
-                                    fontFamily: 'monospace',
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-                            ],
+              ),
+              body: Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline_rounded,
+                        size: 80,
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        localizations.errorLoadingData,
+                        style: Theme.of(context).textTheme.headlineSmall,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        localizations.bookDetailsCouldNotBeLoaded,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      Card(
+                        elevation: 0,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.errorContainer.withValues(alpha: .3),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.error.withValues(alpha: .5),
                           ),
                         ),
-                        const SizedBox(height: 32),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                        child: ExpansionTile(
+                          tilePadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                          ),
+                          iconColor: Theme.of(context).colorScheme.error,
+                          collapsedIconColor:
+                              Theme.of(context).colorScheme.error,
+                          title: Text(
+                            localizations.technicalDetails,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
                           children: [
-                            OutlinedButton.icon(
-                              onPressed:
-                                  () => Navigator.of(
-                                    context,
-                                  ).pop(_didUpdateMetadata),
-                              icon: const Icon(Icons.arrow_back),
-                              label: Text(localizations.goBack),
-                            ),
-                            const SizedBox(width: 16),
-                            FilledButton.icon(
-                              onPressed: () {
-                                context.read<BookDetailsBloc>().add(
-                                  ReloadBookDetails(
-                                    state.bookViewModel ?? widget.bookViewModel,
-                                    widget.bookUuid,
-                                  ),
-                                );
-                              },
-                              icon: const Icon(Icons.refresh),
-                              label: Text(localizations.tryAgain),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                              child: SelectableText(
+                                state.errorMessage ?? 'Unknown Error',
+                                style: TextStyle(
+                                  color:
+                                      Theme.of(context).colorScheme.onSurface,
+                                  fontFamily: 'monospace',
+                                  fontSize: 12,
+                                ),
+                              ),
                             ),
                           ],
                         ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            }
-
-            final book = state.bookDetails ?? _createDummyBook(localizations);
-
-            return Scaffold(
-              appBar: AppBar(
-                title:
-                    isLoading
-                        ? AppSkeletonizer(
-                          enabled: true,
-                          effect: ShimmerEffect(
-                            baseColor: Theme.of(
-                              context,
-                            ).colorScheme.primary.withValues(alpha: .2),
-                            highlightColor: Theme.of(
-                              context,
-                            ).colorScheme.primary.withValues(alpha: .4),
+                      ),
+                      const SizedBox(height: 32),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed:
+                                () => Navigator.of(
+                                  context,
+                                ).pop(_didUpdateMetadata),
+                            icon: const Icon(Icons.arrow_back),
+                            label: Text(localizations.goBack),
                           ),
-                          child: Container(
-                            height: 20,
-                            width: 300,
-                            color: Colors.black,
+                          const SizedBox(width: 16),
+                          FilledButton.icon(
+                            onPressed: () {
+                              context.read<BookDetailsBloc>().add(
+                                ReloadBookDetails(
+                                  state.bookViewModel ?? widget.bookViewModel,
+                                  widget.bookUuid,
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.refresh),
+                            label: Text(localizations.tryAgain),
                           ),
-                        )
-                        : Text(
-                          book.title.length > 30
-                              ? '${book.title.substring(0, 30)}...'
-                              : book.title,
-                        ),
-                leading: IconButton(
-                  onPressed:
-                      () => Navigator.of(context).pop(_didUpdateMetadata),
-                  icon: const Icon(Icons.arrow_back),
-                ),
-              ),
-              body: RefreshIndicator(
-                onRefresh: () async {
-                  context.read<BookDetailsBloc>().add(
-                    ReloadBookDetails(
-                      state.bookViewModel ?? widget.bookViewModel,
-                      widget.bookUuid,
-                    ),
-                  );
-                },
-
-                child: AppSkeletonizer(
-                  enabled: isLoading,
-                  effect: ShimmerEffect(
-                    baseColor: Theme.of(
-                      context,
-                    ).colorScheme.primary.withValues(alpha: .2),
-                    highlightColor: Theme.of(
-                      context,
-                    ).colorScheme.primary.withValues(alpha: .4),
-                  ),
-                  child: _buildBookDetails(
-                    context,
-                    localizations,
-                    state,
-                    book,
-                    isLoading,
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ),
-              floatingActionButton:
-                  isLoading
-                      ? null
-                      : SendToEreaderWidget(book: book, isLoading: isLoading),
             );
-          },
-        ),
+          }
+
+          final book = state.bookDetails ?? _createDummyBook(localizations);
+
+          return Scaffold(
+            appBar: AppBar(
+              title:
+                  isLoading
+                      ? AppSkeletonizer(
+                        enabled: true,
+                        effect: ShimmerEffect(
+                          baseColor: Theme.of(
+                            context,
+                          ).colorScheme.primary.withValues(alpha: .2),
+                          highlightColor: Theme.of(
+                            context,
+                          ).colorScheme.primary.withValues(alpha: .4),
+                        ),
+                        child: Container(
+                          height: 20,
+                          width: 300,
+                          color: Colors.black,
+                        ),
+                      )
+                      : Text(
+                        book.title.length > 30
+                            ? '${book.title.substring(0, 30)}...'
+                            : book.title,
+                      ),
+              leading: IconButton(
+                onPressed: () => Navigator.of(context).pop(_didUpdateMetadata),
+                icon: const Icon(Icons.arrow_back),
+              ),
+            ),
+            body: RefreshIndicator(
+              onRefresh: () async {
+                context.read<BookDetailsBloc>().add(
+                  ReloadBookDetails(
+                    state.bookViewModel ?? widget.bookViewModel,
+                    widget.bookUuid,
+                  ),
+                );
+              },
+
+              child: AppSkeletonizer(
+                enabled: isLoading,
+                effect: ShimmerEffect(
+                  baseColor: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: .2),
+                  highlightColor: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: .4),
+                ),
+                child: _buildBookDetails(
+                  context,
+                  localizations,
+                  state,
+                  book,
+                  isLoading,
+                ),
+              ),
+            ),
+            floatingActionButton:
+                isLoading
+                    ? null
+                    : SendToEreaderWidget(book: book, isLoading: isLoading),
+          );
+        },
       ),
     );
   }

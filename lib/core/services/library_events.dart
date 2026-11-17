@@ -5,9 +5,12 @@ enum BookChange { readStatus, archived, metadata, shelves, deleted, download }
 
 /// A book changed somewhere in the app.
 class BookChanged {
-  const BookChanged(this.bookId, this.change);
+  const BookChanged(this.bookId, this.change, {this.read});
   final int bookId;
   final BookChange change;
+
+  /// New read status for [BookChange.readStatus].
+  final bool? read;
 }
 
 /// App-wide broadcast of book changes.

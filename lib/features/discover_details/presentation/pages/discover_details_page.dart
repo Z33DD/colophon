@@ -15,6 +15,7 @@ import 'package:calibre_web_companion/features/discover_details/presentation/wid
 import 'package:calibre_web_companion/features/discover_details/presentation/widgets/category_list_item_widget.dart';
 import 'package:calibre_web_companion/l10n/app_localizations.dart';
 import 'package:calibre_web_companion/main.dart';
+import 'package:calibre_web_companion/shared/ui/on_book_changed.dart';
 import 'package:calibre_web_companion/shared/widgets/book_card_skeleton_widget.dart';
 import 'package:calibre_web_companion/shared/widgets/book_card_widget.dart';
 import 'package:calibre_web_companion/shared/widgets/book_cover_widget.dart';
@@ -48,39 +49,51 @@ class DiscoverDetailsPage extends StatelessWidget {
     return BlocProvider(
       create: (context) {
         final bloc = getIt<DiscoverDetailsBloc>();
-
-        if (fullPath != null) {
-          bloc.add(LoadBooksFromPath(fullPath!));
-        } else if (discoverType != null) {
-          bloc.add(LoadBooks(discoverType!, subPath: subPath));
-        } else if (categoryType != null) {
-          bloc.add(LoadCategories(categoryType!, subPath: subPath));
-        }
-
+        _load(bloc);
         return bloc;
       },
-      child: BlocConsumer<DiscoverDetailsBloc, DiscoverDetailsState>(
-        listener: (context, state) {
-          if (state.status == DiscoverDetailsStatus.error &&
-              !state.isNotFound) {
-            context.showSnackBar(
-              '${localizations.errorLoadingData}: ${state.errorMessage}',
-              isError: true,
-            );
-          }
-        },
-        builder: (context, state) {
-          return Scaffold(
-            appBar: AppBar(
-              title: _buildAppBarTitle(context, title, categoryType),
-              actions:
-                  state.isShowingBooks ? const [BookViewModeSelector()] : null,
+      child: Builder(
+        builder:
+            (context) => OnBookChanged(
+              // A book opened from this list changed: reload it.
+              onChanged:
+                  (context, _) => _load(context.read<DiscoverDetailsBloc>()),
+              child: BlocConsumer<DiscoverDetailsBloc, DiscoverDetailsState>(
+                listener: (context, state) {
+                  if (state.status == DiscoverDetailsStatus.error &&
+                      !state.isNotFound) {
+                    context.showSnackBar(
+                      '${localizations.errorLoadingData}: ${state.errorMessage}',
+                      isError: true,
+                    );
+                  }
+                },
+                builder: (context, state) {
+                  return Scaffold(
+                    appBar: AppBar(
+                      title: _buildAppBarTitle(context, title, categoryType),
+                      actions:
+                          state.isShowingBooks
+                              ? const [BookViewModeSelector()]
+                              : null,
+                    ),
+                    body: _buildBody(context, state, localizations),
+                  );
+                },
+              ),
             ),
-            body: _buildBody(context, state, localizations),
-          );
-        },
       ),
     );
+  }
+
+  void _load(DiscoverDetailsBloc bloc) {
+    if (fullPath != null) {
+      bloc.add(LoadBooksFromPath(fullPath!));
+    } else if (discoverType != null) {
+      bloc.add(LoadBooks(discoverType!, subPath: subPath));
+    } else if (categoryType != null) {
+      bloc.add(LoadCategories(categoryType!, subPath: subPath));
+    }
   }
 
   Widget _buildAppBarTitle(

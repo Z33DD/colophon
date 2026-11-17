@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:calibre_web_companion/core/exceptions/cancellation_exception.dart';
 import 'package:calibre_web_companion/core/services/download_manager.dart';
+import 'package:calibre_web_companion/core/services/library_events.dart';
 import 'package:calibre_web_companion/core/services/reader_cache_service.dart';
 import 'package:calibre_web_companion/core/services/widget_service.dart';
 import 'package:calibre_web_companion/core/utils/cancellable_download.dart';
@@ -335,6 +336,12 @@ class BookDetailsBloc extends Bloc<BookDetailsEvent, BookDetailsState> {
 
       final uuid = state.bookViewModel?.uuid ?? state.bookDetails!.uuid;
       await downloadManager.registerDownload(uuid, filePath);
+      // Lists redraw the On device stamp.
+      if (GetIt.instance.isRegistered<LibraryEvents>()) {
+        GetIt.instance<LibraryEvents>().publish(
+          BookChanged(state.bookDetails!.id, BookChange.download),
+        );
+      }
       await _cacheOfflineSnapshot(
         uuid,
         state.bookDetails!,

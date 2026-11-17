@@ -789,5 +789,6 @@
         "type": "String"
       }
     }
-  }
+  },
+  "removeFromThisShelf": "Remove from this shelf"
 }

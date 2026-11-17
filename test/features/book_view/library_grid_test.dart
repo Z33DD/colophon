@@ -16,7 +16,11 @@ final _books = [
     ),
 ];
 
-Future<void> _pump(WidgetTester tester, double width, {double textScale = 1}) async {
+Future<void> _pump(
+  WidgetTester tester,
+  double width, {
+  double textScale = 1,
+}) async {
   tester.view.physicalSize = Size(width, 800);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -45,10 +49,11 @@ Future<void> _pump(WidgetTester tester, double width, {double textScale = 1}) as
 }
 
 int _columns(WidgetTester tester) {
-  final tops = tester
-      .widgetList<LibraryTile>(find.byType(LibraryTile))
-      .map((t) => tester.getTopLeft(find.byWidget(t)).dy)
-      .toList();
+  final tops =
+      tester
+          .widgetList<LibraryTile>(find.byType(LibraryTile))
+          .map((t) => tester.getTopLeft(find.byWidget(t)).dy)
+          .toList();
   return tops.where((y) => y == tops.first).length;
 }
 

@@ -1,9 +1,13 @@
+import 'dart:async';
+
+import 'package:calibre_web_companion/core/services/library_events.dart';
 import 'package:calibre_web_companion/features/book_view/bloc/book_view_event.dart';
 import 'package:calibre_web_companion/features/book_view/bloc/book_view_state.dart';
 import 'package:calibre_web_companion/features/book_view/data/models/book_view_model.dart';
 import 'package:calibre_web_companion/features/book_view/data/models/library_filter.dart';
 import 'package:calibre_web_companion/features/book_view/data/repositories/book_view_repository.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 
 class BookViewBloc extends Bloc<BookViewEvent, BookViewState> {
@@ -28,6 +32,12 @@ class BookViewBloc extends Bloc<BookViewEvent, BookViewState> {
     on<ResetUploadStatus>(_onResetUploadStatus);
     on<ChangeLibrary>(_onChangeLibrary);
     on<SetLibraryFilter>(_onSetLibraryFilter);
+    on<ApplyBookChange>(_onApplyBookChange);
+    if (GetIt.instance.isRegistered<LibraryEvents>()) {
+      _changes = GetIt.instance<LibraryEvents>().stream.listen(
+        (event) => add(ApplyBookChange(event)),
+      );
+    }
   }
 
   Future<void> _onLoadSettings(
@@ -217,6 +227,53 @@ class BookViewBloc extends Bloc<BookViewEvent, BookViewState> {
     );
 
     add(const LoadBooks());
+  }
+
+  StreamSubscription<BookChanged>? _changes;
+
+  @override
+  Future<void> close() async {
+    await _changes?.cancel();
+    return super.close();
+  }
+
+  /// Keeps the list current after a change elsewhere, in place where
+  /// possible so the scroll position survives.
+  void _onApplyBookChange(ApplyBookChange event, Emitter<BookViewState> emit) {
+    final change = event.change;
+    final books = state.books;
+    switch (change.change) {
+      case BookChange.readStatus:
+        final read = change.read;
+        if (read == null) break;
+        final implied = state.filter.impliedReadStatus;
+        emit(
+          state.copyWith(
+            books: [
+              for (final b in books)
+                if (b.id != change.bookId)
+                  b
+                // Drop it from a Read/Unread list it no longer belongs to.
+                else if (implied == null || implied == read)
+                  b.copyWith(readStatus: read),
+            ],
+          ),
+        );
+      case BookChange.deleted || BookChange.archived:
+        emit(
+          state.copyWith(
+            books: [
+              for (final b in books)
+                if (b.id != change.bookId) b,
+            ],
+          ),
+        );
+      case BookChange.download:
+        // Same books, new On device stamp.
+        emit(state.copyWith(localRevision: state.localRevision + 1));
+      case BookChange.metadata || BookChange.shelves:
+        add(const RefreshBooks());
+    }
   }
 
   Future<void> _onSetLibraryFilter(

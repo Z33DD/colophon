@@ -31,9 +31,11 @@ void main() {
     test('an author suggestion matches that author, not the word', () {
       // Regression: picking the author "J. R. R. Tolkien" searched free
       // text and also listed books *about* Tolkien.
-      final hits = [_hobbit, _letters, _about].where(
-        (b) => matchesScope(b, SearchScope.author, 'J. R. R. Tolkien'),
-      );
+      final hits = [
+        _hobbit,
+        _letters,
+        _about,
+      ].where((b) => matchesScope(b, SearchScope.author, 'J. R. R. Tolkien'));
       expect(hits, [_hobbit, _letters]);
     });
 

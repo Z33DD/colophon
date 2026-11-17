@@ -15,6 +15,7 @@ import 'package:calibre_web_companion/features/shelf_view.dart/bloc/shelf_view_s
 import 'package:calibre_web_companion/features/shelf_view.dart/presentation/pages/magic_shelf_edit_page.dart';
 import 'package:calibre_web_companion/l10n/app_localizations.dart';
 import 'package:calibre_web_companion/main.dart';
+import 'package:calibre_web_companion/shared/ui/on_book_changed.dart';
 import 'package:calibre_web_companion/shared/widgets/app_dialog_button.dart';
 import 'package:calibre_web_companion/shared/widgets/app_skeletonizer.dart';
 import 'package:calibre_web_companion/shared/widgets/book_card_widget.dart';
@@ -56,111 +57,142 @@ class ShelfDetailsPage extends StatelessWidget {
                   icon: icon,
                 ),
               ),
-      child: BlocConsumer<ShelfDetailsBloc, ShelfDetailsState>(
-        listener: (context, state) {
-          if (state.actionDetailsStatus == ShelfDetailsActionStatus.success) {
-            if (state.actionMessage?.contains('deleted') == true) {
-              Navigator.of(context).pop();
-            }
-            context.showSnackBar(state.actionMessage!, isError: false);
-          } else if (state.actionDetailsStatus ==
-              ShelfDetailsActionStatus.error) {
-            context.showSnackBar(state.actionMessage!, isError: true);
-          }
+      child: Builder(
+        builder:
+            (context) => OnBookChanged(
+              // A book opened from here changed: reload the shelf.
+              onChanged:
+                  (context, _) =>
+                      context.read<ShelfDetailsBloc>().add(_reload()),
+              child: BlocConsumer<ShelfDetailsBloc, ShelfDetailsState>(
+                listener: (context, state) {
+                  if (state.actionDetailsStatus ==
+                          ShelfDetailsActionStatus.success &&
+                      state.actionMessage?.contains('removed') == true) {
+                    // Reload so the removed book leaves the list.
+                    context.read<ShelfDetailsBloc>().add(_reload());
+                  }
+                  if (state.actionDetailsStatus ==
+                      ShelfDetailsActionStatus.success) {
+                    if (state.actionMessage?.contains('deleted') == true) {
+                      Navigator.of(context).pop();
+                    }
+                    context.showSnackBar(state.actionMessage!, isError: false);
+                  } else if (state.actionDetailsStatus ==
+                      ShelfDetailsActionStatus.error) {
+                    context.showSnackBar(state.actionMessage!, isError: true);
+                  }
 
-          if (state.status == ShelfDetailsStatus.error) {
-            context.showSnackBar(
-              '${localizations.errorLoadingData}: ${state.errorMessage}',
-              isError: true,
-            );
-          }
-        },
-        builder: (context, state) {
-          final shelf = state.currentShelfDetail;
-          final bool showPublic = shelf?.isPublic ?? isPublic;
+                  if (state.status == ShelfDetailsStatus.error) {
+                    context.showSnackBar(
+                      '${localizations.errorLoadingData}: ${state.errorMessage}',
+                      isError: true,
+                    );
+                  }
+                },
+                builder: (context, state) {
+                  final shelf = state.currentShelfDetail;
+                  final bool showPublic = shelf?.isPublic ?? isPublic;
 
-          String displayTitle = shelf?.name ?? shelfTitle;
+                  String displayTitle = shelf?.name ?? shelfTitle;
 
-          if (displayTitle.endsWith(' (Public)')) {
-            displayTitle = displayTitle.substring(0, displayTitle.length - 9);
-          }
+                  if (displayTitle.endsWith(' (Public)')) {
+                    displayTitle = displayTitle.substring(
+                      0,
+                      displayTitle.length - 9,
+                    );
+                  }
 
-          final scaffold = Scaffold(
-            appBar: AppBar(
-              title: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (isMagic && (state.magicIcon ?? icon) != null) ...[
-                    Text(state.magicIcon ?? icon!),
-                    const SizedBox(width: 8),
-                  ],
-                  Flexible(
-                    child: Text(displayTitle, overflow: TextOverflow.ellipsis),
-                  ),
-                  if (showPublic) ...[
-                    const SizedBox(width: 8),
-                    Icon(
-                      Icons.public_rounded,
-                      size: 18,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  final scaffold = Scaffold(
+                    appBar: AppBar(
+                      title: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isMagic && (state.magicIcon ?? icon) != null) ...[
+                            Text(state.magicIcon ?? icon!),
+                            const SizedBox(width: 8),
+                          ],
+                          Flexible(
+                            child: Text(
+                              displayTitle,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (showPublic) ...[
+                            const SizedBox(width: 8),
+                            Icon(
+                              Icons.public_rounded,
+                              size: 18,
+                              color:
+                                  Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                            ),
+                          ],
+                        ],
+                      ),
+                      actions: [
+                        const BookViewModeSelector(),
+                        if (isMagic)
+                          ..._buildMagicActions(context, localizations)
+                        else if (!state.isOpds) ...[
+                          IconButton(
+                            icon: CircleAvatar(
+                              backgroundColor:
+                                  Theme.of(
+                                    context,
+                                  ).colorScheme.secondaryContainer,
+                              child: const Icon(Icons.edit_rounded),
+                            ),
+                            tooltip: localizations.editShelf,
+                            onPressed:
+                                () => _showEditShelfDialog(
+                                  context,
+                                  state,
+                                  localizations,
+                                  displayTitle,
+                                ),
+                          ),
+                          IconButton(
+                            icon: CircleAvatar(
+                              backgroundColor:
+                                  Theme.of(
+                                    context,
+                                  ).colorScheme.secondaryContainer,
+                              child: const Icon(Icons.delete_rounded),
+                            ),
+                            tooltip: localizations.deleteShelf,
+                            onPressed:
+                                () => _showDeleteShelfDialog(
+                                  context,
+                                  state,
+                                  localizations,
+                                ),
+                          ),
+                        ],
+                      ],
                     ),
-                  ],
-                ],
+                    body: _buildBody(context, state, localizations),
+                  );
+
+                  if (!isMagic) return scaffold;
+
+                  return BlocListener<ShelfViewBloc, ShelfViewState>(
+                    listenWhen:
+                        (p, c) => p.magicActionStatus != c.magicActionStatus,
+                    listener: (context, sv) {
+                      if (sv.magicActionStatus ==
+                              MagicShelfActionStatus.success &&
+                          (sv.magicActionMessage == 'deleted' ||
+                              sv.magicActionMessage == 'hidden')) {
+                        Navigator.of(context).pop();
+                      }
+                    },
+                    child: scaffold,
+                  );
+                },
               ),
-              actions: [
-                const BookViewModeSelector(),
-                if (isMagic)
-                  ..._buildMagicActions(context, localizations)
-                else if (!state.isOpds) ...[
-                  IconButton(
-                    icon: CircleAvatar(
-                      backgroundColor:
-                          Theme.of(context).colorScheme.secondaryContainer,
-                      child: const Icon(Icons.edit_rounded),
-                    ),
-                    tooltip: localizations.editShelf,
-                    onPressed:
-                        () => _showEditShelfDialog(
-                          context,
-                          state,
-                          localizations,
-                          displayTitle,
-                        ),
-                  ),
-                  IconButton(
-                    icon: CircleAvatar(
-                      backgroundColor:
-                          Theme.of(context).colorScheme.secondaryContainer,
-                      child: const Icon(Icons.delete_rounded),
-                    ),
-                    tooltip: localizations.deleteShelf,
-                    onPressed:
-                        () => _showDeleteShelfDialog(
-                          context,
-                          state,
-                          localizations,
-                        ),
-                  ),
-                ],
-              ],
             ),
-            body: _buildBody(context, state, localizations),
-          );
-
-          if (!isMagic) return scaffold;
-
-          return BlocListener<ShelfViewBloc, ShelfViewState>(
-            listenWhen: (p, c) => p.magicActionStatus != c.magicActionStatus,
-            listener: (context, sv) {
-              if (sv.magicActionStatus == MagicShelfActionStatus.success &&
-                  (sv.magicActionMessage == 'deleted' ||
-                      sv.magicActionMessage == 'hidden')) {
-                Navigator.of(context).pop();
-              }
-            },
-            child: scaffold,
-          );
-        },
       ),
     );
   }
@@ -618,9 +650,50 @@ class ShelfDetailsPage extends StatelessWidget {
           authors: book.authors,
           isLoading: state.loadingBookId == book.id,
           onTap: () => _openShelfBook(context, book),
+          onLongPress: isMagic ? null : () => _confirmRemove(context, book),
         );
       },
     );
+  }
+
+  LoadShelfDetails _reload() => LoadShelfDetails(
+    shelfId,
+    shelfTitle: shelfTitle,
+    isPublic: isPublic,
+    isMagic: isMagic,
+    icon: icon,
+  );
+
+  /// Long-press on a book in a (non-magic) shelf: remove it from here.
+  Future<void> _confirmRemove(BuildContext context, ShelfBookItem book) async {
+    final l10n = AppLocalizations.of(context)!;
+    final bloc = context.read<ShelfDetailsBloc>();
+    final remove = await showModalBottomSheet<bool>(
+      context: context,
+      showDragHandle: true,
+      builder:
+          (sheet) => SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  title: Text(
+                    book.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  subtitle: Text(shelfTitle),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.bookmark_remove_outlined),
+                  title: Text(l10n.removeFromThisShelf),
+                  onTap: () => Navigator.of(sheet).pop(true),
+                ),
+              ],
+            ),
+          ),
+    );
+    if (remove == true) bloc.add(RemoveFromShelf(shelfId, book.id));
   }
 
   Widget _buildShelfBookListTile(BuildContext context, ShelfBookItem book) {
@@ -629,8 +702,8 @@ class ShelfDetailsPage extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => _openShelfBook(context, book),
-        // Ripple feedback on long-press (no action).
-        onLongPress: () {},
+        // Magic shelves are rule-based: books can't be removed by hand.
+        onLongPress: isMagic ? null : () => _confirmRemove(context, book),
         child: SizedBox(
           height: 140,
           child: Row(
