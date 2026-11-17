@@ -675,5 +675,36 @@
       }
     }
   },
-  "themeSourceCirculation": "Companion"
+  "themeSourceCirculation": "Companion",
+  "moreActions": "More actions",
+  "stampReadOn": "Read {date}",
+  "@stampReadOn": {
+    "description": "Stamp on a book cover marking the day it was read, e.g. 'Read 03 Nov'.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "stampRead": "Read",
+  "stampOnDevice": "On device",
+  "stampProgress": "{percent}%",
+  "@stampProgress": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "coverSemanticLabel": "{title} by {author}",
+  "@coverSemanticLabel": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "author": {
+        "type": "String"
+      }
+    }
+  }
 }

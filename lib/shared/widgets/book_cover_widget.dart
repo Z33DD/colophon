@@ -16,12 +16,20 @@ class BookCoverWidget extends StatelessWidget {
   final BoxFit fit;
   final Alignment alignment;
 
+  /// Decode width in physical pixels; null decodes at full resolution.
+  final int? decodeWidth;
+
+  /// Shown instead of the broken-image icon when the cover fails to load.
+  final Widget? fallback;
+
   const BookCoverWidget({
     super.key,
     required this.bookId,
     this.coverUrl,
     this.fit = BoxFit.fitWidth,
     this.alignment = Alignment.topCenter,
+    this.decodeWidth,
+    this.fallback,
   });
 
   @override
@@ -31,7 +39,7 @@ class BookCoverWidget extends StatelessWidget {
     final hasExplicitCover = coverUrl != null && coverUrl!.isNotEmpty;
 
     if (!hasExplicitCover && bookId <= 0) {
-      return _buildPlaceholder(context);
+      return fallback ?? _buildPlaceholder(context);
     }
 
     final prefs = GetIt.instance<SharedPreferences>();
@@ -68,8 +76,10 @@ class BookCoverWidget extends StatelessWidget {
       alignment: alignment,
       width: double.infinity,
       height: double.infinity,
+      memCacheWidth: decodeWidth,
       placeholder: (context, url) => _buildPlaceholder(context),
-      errorWidget: (context, url, error) => _buildErrorWidget(context),
+      errorWidget:
+          (context, url, error) => fallback ?? _buildErrorWidget(context),
     );
   }
 
