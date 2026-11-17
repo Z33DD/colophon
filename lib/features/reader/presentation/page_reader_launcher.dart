@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:calibre_web_companion/core/services/app_transition.dart';
+import 'package:calibre_web_companion/core/navigation/app_route.dart';
 import 'package:calibre_web_companion/features/reader/data/bookmark_store.dart';
 import 'package:calibre_web_companion/features/reader/data/page_progress_store.dart';
 import 'package:calibre_web_companion/features/reader/presentation/pages/comic_reader_page.dart';
@@ -64,7 +64,7 @@ Future<double?> openPageReader(
             bookmarkStore: bookmarkStore,
           );
 
-  await Navigator.of(context).push(AppTransitions.createSlideRoute(page));
+  await Navigator.of(context).push(AppRoute.page(page));
 
   await store.push(bookUuid, format);
   return store.local(bookUuid, format)?.percentage;

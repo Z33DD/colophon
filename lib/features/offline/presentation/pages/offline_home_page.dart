@@ -1,3 +1,4 @@
+import 'package:calibre_web_companion/core/navigation/app_route.dart';
 import 'package:calibre_web_companion/features/login/presentation/pages/login_page.dart';
 import 'package:calibre_web_companion/features/login_settings/presentation/pages/connection_diagnostics_page.dart';
 import 'package:calibre_web_companion/features/login_settings/presentation/pages/login_settings_page.dart';
@@ -112,9 +113,9 @@ class _OfflineMenu extends StatelessWidget {
           icon: Icons.link_rounded,
           title: localizations.connectionSettings,
           onTap:
-              () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const LoginSettingsPage()),
-              ),
+              () => Navigator.of(
+                context,
+              ).push(AppRoute(builder: (_) => const LoginSettingsPage())),
         ),
         _MenuCard(
           icon: Icons.troubleshoot_rounded,
@@ -122,9 +123,7 @@ class _OfflineMenu extends StatelessWidget {
           subtitle: localizations.connectionDiagnosticsSubtitle,
           onTap:
               () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const ConnectionDiagnosticsPage(),
-                ),
+                AppRoute(builder: (_) => const ConnectionDiagnosticsPage()),
               ),
         ),
         _MenuCard(
@@ -133,7 +132,7 @@ class _OfflineMenu extends StatelessWidget {
           onTap:
               () => Navigator.of(
                 context,
-              ).push(MaterialPageRoute(builder: (_) => const LoginPage())),
+              ).push(AppRoute(builder: (_) => const LoginPage())),
         ),
       ],
     );

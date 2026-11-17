@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:calibre_web_companion/core/di/injection_container.dart';
-import 'package:calibre_web_companion/core/services/app_transition.dart';
+import 'package:calibre_web_companion/core/navigation/app_route.dart';
 import 'package:calibre_web_companion/core/services/snackbar.dart';
 import 'package:calibre_web_companion/core/services/widget_service.dart';
 import 'package:calibre_web_companion/core/utils/book_drop.dart';
@@ -183,11 +183,9 @@ class _SettingsPageState extends State<SettingsPage> {
                             subtitle: localizations.isbnMetadataSourcesSubtitle,
                             icon: Icons.travel_explore_rounded,
                             onTap:
-                                () => Navigator.of(context).push(
-                                  AppTransitions.createSlideRoute(
-                                    const IsbnSourcesPage(),
-                                  ),
-                                ),
+                                () => Navigator.of(
+                                  context,
+                                ).push(AppRoute.page(const IsbnSourcesPage())),
                           ),
 
                           const SizedBox(height: 24),
@@ -284,7 +282,7 @@ class _SettingsPageState extends State<SettingsPage> {
     bodyBuilder,
   }) {
     Navigator.of(context).push(
-      AppTransitions.createSlideRoute(
+      AppRoute.page(
         Builder(
           builder: (context) {
             final localizations = AppLocalizations.of(context)!;
@@ -615,9 +613,7 @@ class _SettingsPageState extends State<SettingsPage> {
       child: InkWell(
         borderRadius: BorderRadius.circular(8.0),
         onTap: () {
-          Navigator.of(
-            context,
-          ).push(AppTransitions.createSlideRoute(const LoginSettingsPage()));
+          Navigator.of(context).push(AppRoute.page(const LoginSettingsPage()));
         },
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -2136,9 +2132,7 @@ class _SettingsPageState extends State<SettingsPage> {
       child: InkWell(
         borderRadius: BorderRadius.circular(8.0),
         onTap: () {
-          Navigator.of(
-            context,
-          ).push(AppTransitions.createSlideRoute(const AppLogsPage()));
+          Navigator.of(context).push(AppRoute.page(const AppLogsPage()));
         },
         child: Padding(
           padding: const EdgeInsets.all(16),

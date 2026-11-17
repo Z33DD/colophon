@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:calibre_web_companion/core/services/app_transition.dart';
+import 'package:calibre_web_companion/core/navigation/app_route.dart';
 import 'package:calibre_web_companion/core/services/snackbar.dart';
 import 'package:calibre_web_companion/features/login/bloc/login_bloc.dart';
 import 'package:calibre_web_companion/features/login/bloc/login_event.dart';
@@ -564,9 +564,7 @@ class _LoginFormState extends State<LoginForm> {
                                   ),
                                   onTap: () {
                                     Navigator.of(context).push(
-                                      AppTransitions.createSlideRoute(
-                                        const LoginSettingsPage(),
-                                      ),
+                                      AppRoute.page(const LoginSettingsPage()),
                                     );
                                   },
                                   child: Container(

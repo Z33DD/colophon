@@ -1,5 +1,5 @@
+import 'package:calibre_web_companion/core/navigation/app_route.dart';
 import 'package:calibre_web_companion/core/services/api_service.dart';
-import 'package:calibre_web_companion/core/services/app_transition.dart';
 import 'package:calibre_web_companion/core/services/snackbar.dart';
 import 'package:calibre_web_companion/features/book_view/bloc/book_view_bloc.dart';
 import 'package:calibre_web_companion/features/book_view/bloc/book_view_event.dart';
@@ -49,7 +49,7 @@ class MePage extends StatelessWidget {
             context.read<BookViewBloc>().add(const RefreshBooks());
 
             Navigator.of(context).pushAndRemoveUntil(
-              AppTransitions.createSlideRoute(const HomePage()),
+              AppRoute.page(const HomePage()),
               (route) => false,
             );
           },
@@ -70,9 +70,7 @@ class MePage extends StatelessWidget {
               Navigator.of(
                 // ignore: use_build_context_synchronously
                 context,
-              ).pushReplacement(
-                AppTransitions.createSlideRoute(const LoginPage()),
-              );
+              ).pushReplacement(AppRoute.page(const LoginPage()));
             } else if (state.logoutStatus == LogoutStatus.error) {
               context.showSnackBar(
                 '${localizations.logoutFailed}: ${state.errorMessage}',
@@ -126,22 +124,18 @@ class MePage extends StatelessWidget {
                         text: localizations.settings,
                         icon: Icons.settings_rounded,
                         onPressed:
-                            () => Navigator.of(context).push(
-                              AppTransitions.createSlideRoute(
-                                const SettingsPage(),
-                              ),
-                            ),
+                            () => Navigator.of(
+                              context,
+                            ).push(AppRoute.page(const SettingsPage())),
                       ),
                       if (!state.isOpds)
                         LongButton(
                           text: localizations.shelfs,
                           icon: Icons.list_rounded,
                           onPressed:
-                              () => Navigator.of(context).push(
-                                AppTransitions.createSlideRoute(
-                                  const ShelfViewPage(),
-                                ),
-                              ),
+                              () => Navigator.of(
+                                context,
+                              ).push(AppRoute.page(const ShelfViewPage())),
                         ),
 
                       if (!state.isOpds) ...[
@@ -150,7 +144,7 @@ class MePage extends StatelessWidget {
                           icon: Icons.my_library_books_rounded,
                           onPressed:
                               () => Navigator.of(context).push(
-                                AppTransitions.createSlideRoute(
+                                AppRoute.page(
                                   DiscoverDetailsPage(
                                     title: localizations.readBooks,
                                     discoverType: DiscoverType.readbooks,
@@ -164,7 +158,7 @@ class MePage extends StatelessWidget {
                           icon: Icons.read_more_rounded,
                           onPressed:
                               () => Navigator.of(context).push(
-                                AppTransitions.createSlideRoute(
+                                AppRoute.page(
                                   DiscoverDetailsPage(
                                     title: localizations.unreadBooks,
                                     discoverType: DiscoverType.unreadbooks,
@@ -426,9 +420,7 @@ class MePage extends StatelessWidget {
       if (state.status == LoginStatus.success) succeeded = true;
     });
 
-    await Navigator.of(
-      context,
-    ).push(AppTransitions.createSlideRoute(const LoginPage()));
+    await Navigator.of(context).push(AppRoute.page(const LoginPage()));
     await subscription.cancel();
 
     if (succeeded) return;

@@ -1,5 +1,5 @@
+import 'package:calibre_web_companion/core/navigation/app_route.dart';
 import 'package:calibre_web_companion/core/services/api_service.dart';
-import 'package:calibre_web_companion/core/services/app_transition.dart';
 import 'package:calibre_web_companion/features/book_details/presentation/pages/book_details_page.dart';
 import 'package:calibre_web_companion/features/book_view/bloc/book_view_bloc.dart';
 import 'package:calibre_web_companion/features/book_view/data/models/book_view_model.dart';
@@ -298,9 +298,7 @@ class _OpdsFeedViewState extends State<OpdsFeedView> {
         trailing: const Icon(Icons.chevron_right_rounded),
         onTap:
             () => Navigator.of(context).push(
-              AppTransitions.createSlideRoute(
-                OpdsFeedPage(url: entry.url, title: entry.title),
-              ),
+              AppRoute.page(OpdsFeedPage(url: entry.url, title: entry.title)),
             ),
       ),
     );
@@ -308,9 +306,7 @@ class _OpdsFeedViewState extends State<OpdsFeedView> {
 
   void _openBook(BuildContext context, BookViewModel book) {
     Navigator.of(context).push(
-      AppTransitions.createSlideRoute(
-        BookDetailsPage(bookViewModel: book, bookUuid: book.uuid),
-      ),
+      AppRoute.page(BookDetailsPage(bookViewModel: book, bookUuid: book.uuid)),
     );
   }
 
@@ -363,7 +359,7 @@ Future<void> showOpdsSearchDialog(
   final navigator = Navigator.of(context);
   if (result is BookViewModel) {
     await navigator.push(
-      AppTransitions.createSlideRoute(
+      AppRoute.page(
         BookDetailsPage(bookViewModel: result, bookUuid: result.uuid),
       ),
     );
@@ -374,7 +370,7 @@ Future<void> showOpdsSearchDialog(
   final searchUrl = await cubit.buildSearchUrl(query);
   if (searchUrl == null || !context.mounted) return;
 
-  final route = AppTransitions.createSlideRoute(
+  final route = AppRoute.page(
     OpdsFeedPage(
       url: searchUrl,
       searchQuery: query,

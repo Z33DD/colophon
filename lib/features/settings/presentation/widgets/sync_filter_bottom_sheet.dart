@@ -1,3 +1,4 @@
+import 'package:calibre_web_companion/core/navigation/app_route.dart';
 import 'package:calibre_web_companion/core/services/api_service.dart';
 import 'package:calibre_web_companion/features/settings/presentation/pages/filter_selection_page.dart'; // Import Page
 import 'package:calibre_web_companion/features/shelf_view.dart/data/models/shelf_list_view_model.dart';
@@ -97,7 +98,7 @@ class _SyncFilterBottomSheetState extends State<SyncFilterBottomSheet> {
     if (!mounted) return;
 
     final result = await Navigator.of(context).push<List<String>>(
-      MaterialPageRoute(
+      AppRoute(
         builder:
             (_) => FilterSelectionPage(
               title: title,

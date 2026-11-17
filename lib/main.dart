@@ -3,9 +3,9 @@ import 'dart:ui';
 
 import 'package:adaptive_theme/adaptive_theme.dart';
 import 'package:calibre_web_companion/core/di/injection_container.dart' as di;
+import 'package:calibre_web_companion/core/navigation/app_route.dart';
 import 'package:calibre_web_companion/core/services/api_service.dart';
 import 'package:calibre_web_companion/core/services/app_log_service.dart';
-import 'package:calibre_web_companion/core/services/app_transition.dart';
 import 'package:calibre_web_companion/core/services/connectivity_service.dart';
 import 'package:calibre_web_companion/core/services/download_manager.dart';
 import 'package:calibre_web_companion/core/services/session_reauth_service.dart';
@@ -206,7 +206,7 @@ class _MyAppState extends State<MyApp> {
     }
 
     final result = await navigator.push<bool>(
-      MaterialPageRoute(
+      AppRoute(
         builder:
             (_) => WebViewLoginPage(
               redirectUrl: baseUrl,
@@ -307,7 +307,7 @@ class _MyAppState extends State<MyApp> {
     final navigator = await _waitForNavigator();
     unawaited(
       navigator?.push(
-        AppTransitions.createSlideRoute(
+        AppRoute.page(
           BookDetailsPage(
             bookViewModel: book,
             bookUuid: book.uuid,
@@ -340,7 +340,7 @@ class _MyAppState extends State<MyApp> {
         }
       case 'scan':
         final added = await navigator.push<bool>(
-          AppTransitions.createSlideRoute(const ScanBookPage()),
+          AppRoute.page(const ScanBookPage()),
         );
         if (added == true && context.mounted) {
           context.read<BookViewBloc>().add(const RefreshBooks());
@@ -440,6 +440,11 @@ class _MyAppState extends State<MyApp> {
                   final mediaQuery = MediaQuery.of(context);
                   return MediaQuery(
                     data: mediaQuery.copyWith(
+                      // E-ink panels ghost on motion: treat e-ink mode as
+                      // reduced motion everywhere, not only in our routes.
+                      disableAnimations:
+                          mediaQuery.disableAnimations ||
+                          settingsState.isEInkMode,
                       // Multiply, don't replace: keep the OS font size.
                       textScaler: AppTextScaler(
                         system: mediaQuery.textScaler,

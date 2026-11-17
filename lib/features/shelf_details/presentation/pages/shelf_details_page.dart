@@ -1,3 +1,4 @@
+import 'package:calibre_web_companion/core/navigation/app_route.dart';
 import 'package:calibre_web_companion/core/services/snackbar.dart';
 import 'package:calibre_web_companion/features/book_details/presentation/pages/book_details_page.dart';
 import 'package:calibre_web_companion/features/book_view/bloc/book_view_bloc.dart';
@@ -232,7 +233,7 @@ class ShelfDetailsPage extends StatelessWidget {
     final shelfViewBloc = context.read<ShelfViewBloc>();
     final detailsBloc = context.read<ShelfDetailsBloc>();
     final result = await Navigator.of(context).push<Object?>(
-      MaterialPageRoute(
+      AppRoute(
         builder:
             (_) => BlocProvider.value(
               value: shelfViewBloc,
@@ -679,7 +680,7 @@ class ShelfDetailsPage extends StatelessWidget {
     final cleanUuid = book.id.toLowerCase().replaceAll('urn:uuid:', '');
 
     Navigator.of(context).push(
-      MaterialPageRoute(
+      AppRoute(
         builder:
             (context) => BookDetailsPage(
               bookUuid: cleanUuid,

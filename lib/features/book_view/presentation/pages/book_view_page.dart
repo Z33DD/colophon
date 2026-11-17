@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:calibre_web_companion/core/services/app_transition.dart';
+import 'package:calibre_web_companion/core/navigation/app_route.dart';
 import 'package:calibre_web_companion/core/services/snackbar.dart';
 import 'package:calibre_web_companion/features/book_details/presentation/pages/book_details_page.dart';
 import 'package:calibre_web_companion/features/book_view/bloc/book_view_bloc.dart';
@@ -196,7 +196,7 @@ class _BookViewPageState extends State<BookViewPage> {
                     book: book,
                     onTap: () async {
                       final changed = await Navigator.of(context).push<bool>(
-                        AppTransitions.createSlideRoute(
+                        AppRoute.page(
                           BookDetailsPage(
                             bookViewModel: book,
                             bookUuid: book.uuid,
@@ -240,7 +240,7 @@ class _BookViewPageState extends State<BookViewPage> {
                     topLeftBadge: book.seriesBadge,
                     onTap: () async {
                       final changed = await Navigator.of(context).push<bool>(
-                        AppTransitions.createSlideRoute(
+                        AppRoute.page(
                           BookDetailsPage(
                             bookViewModel: book,
                             bookUuid: book.uuid,
@@ -369,7 +369,7 @@ class _BookViewPageState extends State<BookViewPage> {
     MapEntry<String, List<BookViewModel>> entry,
   ) {
     Navigator.of(context).push(
-      AppTransitions.createSlideRoute(
+      AppRoute.page(
         SeriesDetailPage(seriesName: entry.key, books: entry.value),
       ),
     );
@@ -501,7 +501,7 @@ class _BookViewPageState extends State<BookViewPage> {
   Future<void> _openScanner(BuildContext context) async {
     final added = await Navigator.of(
       context,
-    ).push<bool>(AppTransitions.createSlideRoute(const ScanBookPage()));
+    ).push<bool>(AppRoute.page(const ScanBookPage()));
     if (added == true && context.mounted) {
       context.read<BookViewBloc>().add(const RefreshBooks());
     }

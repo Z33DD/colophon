@@ -1,4 +1,4 @@
-import 'package:calibre_web_companion/core/services/app_transition.dart';
+import 'package:calibre_web_companion/core/navigation/app_route.dart';
 import 'package:calibre_web_companion/core/services/snackbar.dart';
 import 'package:calibre_web_companion/features/shelf_details/bloc/shelf_details_bloc.dart';
 import 'package:calibre_web_companion/features/shelf_details/presentation/pages/shelf_details_page.dart';
@@ -150,7 +150,7 @@ class ShelfViewPage extends StatelessWidget {
 
   void _openMagicShelfEditor(BuildContext context, {String? shelfId}) {
     Navigator.of(context).push(
-      AppTransitions.createSlideRoute(
+      AppRoute.page(
         BlocProvider.value(
           value: context.read<ShelfViewBloc>(),
           child: MagicShelfEditPage(shelfId: shelfId),
@@ -201,7 +201,7 @@ class ShelfViewPage extends StatelessWidget {
         trailing: _trailing(context, isPublic: shelf.isPublic),
         onTap: () {
           Navigator.of(context).push(
-            AppTransitions.createSlideRoute(
+            AppRoute.page(
               MultiBlocProvider(
                 providers: [
                   BlocProvider.value(value: context.read<ShelfViewBloc>()),
@@ -255,7 +255,7 @@ class ShelfViewPage extends StatelessWidget {
         trailing: _trailing(context, isPublic: shelf.isPublic),
         onTap: () {
           Navigator.of(context).push(
-            AppTransitions.createSlideRoute(
+            AppRoute.page(
               MultiBlocProvider(
                 providers: [
                   BlocProvider.value(value: context.read<ShelfViewBloc>()),

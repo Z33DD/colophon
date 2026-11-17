@@ -1,4 +1,4 @@
-import 'package:calibre_web_companion/core/services/app_transition.dart';
+import 'package:calibre_web_companion/core/navigation/app_route.dart';
 import 'package:calibre_web_companion/core/services/snackbar.dart';
 import 'package:calibre_web_companion/features/book_details/data/models/book_details_model.dart';
 import 'package:calibre_web_companion/features/shelf_details/bloc/shelf_details_bloc.dart';
@@ -347,7 +347,7 @@ class _AddToShelfWidgetState extends State<AddToShelfWidget> {
     final shelfViewBloc = context.read<ShelfViewBloc>();
     Navigator.of(dialogContext).pop();
     Navigator.of(context).push(
-      AppTransitions.createSlideRoute(
+      AppRoute.page(
         MultiBlocProvider(
           providers: [
             BlocProvider.value(value: shelfViewBloc),

@@ -1,5 +1,5 @@
 import 'package:calibre_web_companion/core/di/injection_container.dart';
-import 'package:calibre_web_companion/core/services/app_transition.dart';
+import 'package:calibre_web_companion/core/navigation/app_route.dart';
 import 'package:calibre_web_companion/features/discover/blocs/discover_bloc.dart';
 import 'package:calibre_web_companion/features/discover/blocs/discover_event.dart';
 import 'package:calibre_web_companion/features/discover/blocs/discover_state.dart';
@@ -97,7 +97,7 @@ class DiscoverPage extends StatelessWidget {
               ),
             );
             Navigator.of(context).push(
-              AppTransitions.createSlideRoute(
+              AppRoute.page(
                 DiscoverDetailsPage(
                   title: localizations.libraries,
                   categoryType: CategoryType.libraries,
@@ -118,7 +118,7 @@ class DiscoverPage extends StatelessWidget {
               ),
             );
             Navigator.of(context).push(
-              AppTransitions.createSlideRoute(
+              AppRoute.page(
                 DiscoverDetailsPage(
                   title: localizations.newBooks,
                   discoverType: DiscoverType.newlyAdded,
@@ -138,7 +138,7 @@ class DiscoverPage extends StatelessWidget {
               ),
             );
             Navigator.of(context).push(
-              AppTransitions.createSlideRoute(
+              AppRoute.page(
                 DiscoverDetailsPage(
                   title: localizations.surpriseMe,
                   discoverType: DiscoverType.surprise,
@@ -226,7 +226,7 @@ class DiscoverPage extends StatelessWidget {
                 ),
               );
               Navigator.of(context).push(
-                AppTransitions.createSlideRoute(
+                AppRoute.page(
                   DiscoverDetailsPage(
                     title: localizations.discoverBooks,
                     discoverType: DiscoverType.discover,
@@ -247,7 +247,7 @@ class DiscoverPage extends StatelessWidget {
                 ),
               );
               Navigator.of(context).push(
-                AppTransitions.createSlideRoute(
+                AppRoute.page(
                   DiscoverDetailsPage(
                     title: localizations.hotBooks,
                     discoverType: DiscoverType.hot,
@@ -268,7 +268,7 @@ class DiscoverPage extends StatelessWidget {
                 ),
               );
               Navigator.of(context).push(
-                AppTransitions.createSlideRoute(
+                AppRoute.page(
                   DiscoverDetailsPage(
                     title: localizations.newBooks,
                     discoverType: DiscoverType.newlyAdded,
@@ -289,7 +289,7 @@ class DiscoverPage extends StatelessWidget {
                 ),
               );
               Navigator.of(context).push(
-                AppTransitions.createSlideRoute(
+                AppRoute.page(
                   DiscoverDetailsPage(
                     title: localizations.ratedBooks,
                     discoverType: DiscoverType.rated,
@@ -333,7 +333,7 @@ class DiscoverPage extends StatelessWidget {
                 ),
               );
               Navigator.of(context).push(
-                AppTransitions.createSlideRoute(
+                AppRoute.page(
                   DiscoverDetailsPage(
                     title: localizations.authors,
                     categoryType: CategoryType.author,
@@ -354,7 +354,7 @@ class DiscoverPage extends StatelessWidget {
                 ),
               );
               Navigator.of(context).push(
-                AppTransitions.createSlideRoute(
+                AppRoute.page(
                   DiscoverDetailsPage(
                     title: localizations.categories,
                     categoryType: CategoryType.category,
@@ -375,7 +375,7 @@ class DiscoverPage extends StatelessWidget {
                 ),
               );
               Navigator.of(context).push(
-                AppTransitions.createSlideRoute(
+                AppRoute.page(
                   DiscoverDetailsPage(
                     title: localizations.series,
                     categoryType: CategoryType.series,
@@ -396,7 +396,7 @@ class DiscoverPage extends StatelessWidget {
                 ),
               );
               Navigator.of(context).push(
-                AppTransitions.createSlideRoute(
+                AppRoute.page(
                   DiscoverDetailsPage(
                     title: localizations.formats,
                     categoryType: CategoryType.formats,
@@ -417,7 +417,7 @@ class DiscoverPage extends StatelessWidget {
                 ),
               );
               Navigator.of(context).push(
-                AppTransitions.createSlideRoute(
+                AppRoute.page(
                   DiscoverDetailsPage(
                     title: localizations.languages,
                     categoryType: CategoryType.language,
@@ -438,7 +438,7 @@ class DiscoverPage extends StatelessWidget {
                 ),
               );
               Navigator.of(context).push(
-                AppTransitions.createSlideRoute(
+                AppRoute.page(
                   DiscoverDetailsPage(
                     title: localizations.publishers,
                     categoryType: CategoryType.publisher,
@@ -459,7 +459,7 @@ class DiscoverPage extends StatelessWidget {
                 ),
               );
               Navigator.of(context).push(
-                AppTransitions.createSlideRoute(
+                AppRoute.page(
                   DiscoverDetailsPage(
                     title: localizations.ratings,
                     categoryType: CategoryType.ratings,
@@ -502,7 +502,7 @@ class DiscoverPage extends StatelessWidget {
             FilledButton.icon(
               onPressed: () {
                 Navigator.of(context).push(
-                  AppTransitions.createSlideRoute(
+                  AppRoute.page(
                     const SettingsPage(
                       initialSubPage: SettingsSubPage.discover,
                     ),

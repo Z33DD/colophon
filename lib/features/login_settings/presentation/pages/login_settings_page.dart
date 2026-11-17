@@ -1,3 +1,4 @@
+import 'package:calibre_web_companion/core/navigation/app_route.dart';
 import 'package:calibre_web_companion/core/services/snackbar.dart';
 import 'package:calibre_web_companion/features/login_settings/bloc/login_settings_bloc.dart';
 import 'package:calibre_web_companion/features/login_settings/bloc/login_settings_event.dart';
@@ -52,7 +53,7 @@ class _LoginSettingsPage extends State<LoginSettingsPage> {
                           child: InkWell(
                             onTap: () {
                               Navigator.of(context).push(
-                                MaterialPageRoute(
+                                AppRoute(
                                   builder:
                                       (_) => const ConnectionDiagnosticsPage(),
                                 ),

@@ -1,4 +1,4 @@
-import 'package:calibre_web_companion/core/services/app_transition.dart';
+import 'package:calibre_web_companion/core/navigation/app_route.dart';
 import 'package:calibre_web_companion/features/book_details/presentation/pages/book_details_page.dart';
 import 'package:calibre_web_companion/features/book_view/data/models/book_view_model.dart';
 import 'package:calibre_web_companion/l10n/app_localizations.dart';
@@ -44,7 +44,7 @@ class SeriesDetailPage extends StatelessWidget {
                     topLeftBadge: book.seriesBadge,
                     onTap:
                         () => Navigator.of(context).push(
-                          AppTransitions.createSlideRoute(
+                          AppRoute.page(
                             BookDetailsPage(
                               bookViewModel: book,
                               bookUuid: book.uuid,

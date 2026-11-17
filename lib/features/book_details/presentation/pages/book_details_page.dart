@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:calibre_web_companion/core/di/injection_container.dart';
-import 'package:calibre_web_companion/core/services/app_transition.dart';
+import 'package:calibre_web_companion/core/navigation/app_route.dart';
 import 'package:calibre_web_companion/core/services/download_folder_resolver.dart';
 import 'package:calibre_web_companion/core/services/kosync_service.dart';
 import 'package:calibre_web_companion/core/services/server_capabilities.dart';
@@ -722,7 +722,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                     SeriesNavigationStatus.success &&
                 state.seriesNavigationPath != null) {
               Navigator.of(context).push(
-                AppTransitions.createSlideRoute(
+                AppRoute.page(
                   DiscoverDetailsPage(
                     title: state.bookDetails?.series ?? '',
                     categoryType: CategoryType.series,
@@ -743,7 +743,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                     AuthorNavigationStatus.success &&
                 state.authorNavigationPath != null) {
               Navigator.of(context).push(
-                AppTransitions.createSlideRoute(
+                AppRoute.page(
                   DiscoverDetailsPage(
                     title: state.authorNavigationName ?? '',
                     categoryType: CategoryType.author,
@@ -1393,7 +1393,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
           FilledButton.icon(
             onPressed: () {
               Navigator.of(context).push(
-                AppTransitions.createSlideRoute(
+                AppRoute.page(
                   const SettingsPage(
                     initialSubPage: SettingsSubPage.bookDetails,
                   ),
@@ -1873,7 +1873,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                   //     orElse: () => TagModel(id: 0, name: tag),
                   //   );
                   //   Navigator.of(context).push(
-                  //     AppTransitions.createSlideRoute(
+                  //     AppRoute.page(
                   //       DiscoverDetailsPage(
                   //         title: tag,
                   //         categoryType: CategoryType.category,

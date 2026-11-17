@@ -142,6 +142,12 @@ abstract final class AppTheme {
     return base.copyWith(
       scaffoldBackgroundColor: scheme.surface,
       extensions: [desk],
+      // Predictive back on Android: the page follows the back gesture.
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: PredictiveBackPageTransitionsBuilder(),
+        },
+      ),
       appBarTheme: AppBarTheme(
         backgroundColor: desk.shell,
         foregroundColor: desk.onShell,

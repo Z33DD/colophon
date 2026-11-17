@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:calibre_web_companion/core/navigation/app_route.dart';
 import 'package:calibre_web_companion/core/services/api_service.dart';
 import 'package:calibre_web_companion/core/services/snackbar.dart';
 import 'package:calibre_web_companion/core/utils/http_header_utils.dart';
@@ -190,7 +191,7 @@ class _WebViewLoginPageState extends State<WebViewLoginPage> {
           } else {
             _logger.i('SSO Login finalized via Bloc. Navigating home.');
             Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(builder: (context) => const HomePage()),
+              AppRoute(builder: (context) => const HomePage()),
               (route) => false,
             );
           }

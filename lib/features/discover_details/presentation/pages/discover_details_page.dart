@@ -1,4 +1,4 @@
-import 'package:calibre_web_companion/core/services/app_transition.dart';
+import 'package:calibre_web_companion/core/navigation/app_route.dart';
 import 'package:calibre_web_companion/core/services/snackbar.dart';
 import 'package:calibre_web_companion/features/book_details/data/models/book_details_model.dart';
 import 'package:calibre_web_companion/features/book_details/presentation/pages/book_details_page.dart';
@@ -446,7 +446,7 @@ class DiscoverDetailsPage extends StatelessWidget {
     final int parsedId = int.tryParse(book.id)!;
 
     Navigator.of(context).push(
-      MaterialPageRoute(
+      AppRoute(
         builder:
             (context) => BookDetailsPage(
               bookViewModel: BookDetailsModel(
@@ -707,6 +707,6 @@ class DiscoverDetailsPage extends StatelessWidget {
   }
 
   void _navigateToPage(BuildContext context, Widget page) {
-    Navigator.push(context, AppTransitions.createSlideRoute(page));
+    Navigator.push(context, AppRoute.page(page));
   }
 }
