@@ -117,6 +117,7 @@ class _SearchTabWidgetState extends State<SearchTabWidget> {
               onPressed: _openFilterSheet,
             ),
             IconButton(
+              tooltip: AppLocalizations.of(context)!.search,
               icon: const Icon(Icons.search),
               onPressed: _performSearch,
             ),

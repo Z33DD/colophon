@@ -1,3 +1,4 @@
+import 'package:calibre_web_companion/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
 class LoginTextField extends StatelessWidget {
@@ -62,6 +63,10 @@ class LoginTextField extends StatelessWidget {
             suffixIcon:
                 obscureText
                     ? IconButton(
+                      tooltip:
+                          isObscureText
+                              ? AppLocalizations.of(context)!.showPassword
+                              : AppLocalizations.of(context)!.hidePassword,
                       icon: Icon(
                         isObscureText ? Icons.visibility : Icons.visibility_off,
                       ),

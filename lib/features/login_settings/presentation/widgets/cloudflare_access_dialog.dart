@@ -133,6 +133,10 @@ class _CloudflareAccessDialogState extends State<CloudflareAccessDialog> {
                 border: const OutlineInputBorder(),
                 labelText: l.cloudflareAccessClientSecret,
                 suffixIcon: IconButton(
+                  tooltip:
+                      _obscureSecret
+                          ? AppLocalizations.of(context)!.showPassword
+                          : AppLocalizations.of(context)!.hidePassword,
                   icon: Icon(
                     _obscureSecret
                         ? Icons.visibility_rounded

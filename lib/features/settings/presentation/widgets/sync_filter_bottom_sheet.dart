@@ -132,6 +132,7 @@ class _SyncFilterBottomSheetState extends State<SyncFilterBottomSheet> {
               ),
               const Spacer(),
               IconButton(
+                tooltip: AppLocalizations.of(context)!.close,
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(Icons.close),
               ),

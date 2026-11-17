@@ -49,9 +49,7 @@ class HeaderItem extends StatelessWidget {
                 );
               },
               tooltip: localizations.deleteHeader,
-              visualDensity: VisualDensity.compact,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minHeight: 36, minWidth: 36),
+              constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
             ),
           ],
         ),

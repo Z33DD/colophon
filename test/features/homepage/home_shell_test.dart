@@ -63,6 +63,16 @@ void main() {
     }
   });
 
+  testWidgets('navigation meets tap-target and label guidelines', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    await _pump(tester);
+    await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
+    await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
+    handle.dispose();
+  });
+
   testWidgets('900dp windows get a navigation rail instead', (tester) async {
     await _pump(tester, size: const Size(900, 700));
     expect(find.byType(NavigationRail), findsOneWidget);

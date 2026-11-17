@@ -122,6 +122,7 @@ class _FilterSelectionPageState extends State<FilterSelectionPage> {
               onPressed: _toggleSelectAll,
             ),
           IconButton(
+            tooltip: AppLocalizations.of(context)!.apply,
             icon: const Icon(Icons.check),
             onPressed: () => Navigator.pop(context, selectedItems),
           ),

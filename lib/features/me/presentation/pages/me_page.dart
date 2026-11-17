@@ -261,6 +261,10 @@ class MePage extends StatelessWidget {
                           trailing:
                               isCurrent
                                   ? IconButton(
+                                    tooltip:
+                                        AppLocalizations.of(
+                                          context,
+                                        )!.currentAccount,
                                     onPressed: null,
                                     icon: Icon(
                                       Icons.check_circle,
@@ -271,6 +275,10 @@ class MePage extends StatelessWidget {
                                     ),
                                   )
                                   : IconButton(
+                                    tooltip:
+                                        AppLocalizations.of(
+                                          context,
+                                        )!.deleteAccount,
                                     icon: const Icon(Icons.delete_outline),
                                     onPressed: () {
                                       _showDeleteAccountDialog(

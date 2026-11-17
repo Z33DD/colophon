@@ -784,14 +784,7 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
 
           if (hasError) {
             return Scaffold(
-              appBar: AppBar(
-                title: Text(localizations.error),
-                leading: IconButton(
-                  icon: const Icon(Icons.arrow_back),
-                  onPressed:
-                      () => Navigator.of(context).pop(_didUpdateMetadata),
-                ),
-              ),
+              appBar: AppBar(title: Text(localizations.error)),
               body: Center(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(24.0),
@@ -922,10 +915,6 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-              leading: IconButton(
-                onPressed: () => Navigator.of(context).pop(_didUpdateMetadata),
-                icon: const Icon(Icons.arrow_back),
-              ),
             ),
             body: RefreshIndicator(
               onRefresh: () async {

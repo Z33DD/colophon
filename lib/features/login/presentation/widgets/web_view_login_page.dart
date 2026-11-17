@@ -208,11 +208,13 @@ class _WebViewLoginPageState extends State<WebViewLoginPage> {
         appBar: AppBar(
           title: Text(localizations.ssoLogin),
           leading: IconButton(
+            tooltip: AppLocalizations.of(context)!.close,
             icon: const Icon(Icons.close),
             onPressed: () => Navigator.of(context).pop(),
           ),
           actions: [
             IconButton(
+              tooltip: AppLocalizations.of(context)!.reload,
               icon: const Icon(Icons.refresh),
               onPressed: () => _webViewController?.reload(),
             ),

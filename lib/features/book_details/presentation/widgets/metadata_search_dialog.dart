@@ -143,6 +143,7 @@ class _MetadataSearchDialogState extends State<MetadataSearchDialog> {
                         border: const OutlineInputBorder(),
                         isDense: true,
                         suffixIcon: IconButton(
+                          tooltip: AppLocalizations.of(context)!.search,
                           icon: const Icon(Icons.search),
                           onPressed: _search,
                         ),

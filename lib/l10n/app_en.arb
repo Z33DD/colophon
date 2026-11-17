@@ -880,5 +880,10 @@
   "settingsDiscoverBrowseItems": "Browse items",
   "invalidUrlInline": "Enter a full address starting with http:// or https://",
   "aboutBasedOn": "Colophon is a fork of Calibre Web Companion by doen1el, released under the GNU GPL v3. Thanks to its author and contributors.",
-  "aboutOriginalProject": "Original project"
+  "aboutOriginalProject": "Original project",
+  "showPassword": "Show password",
+  "hidePassword": "Hide password",
+  "currentAccount": "Current account",
+  "conditionAnd": "AND",
+  "conditionOr": "OR"
 }

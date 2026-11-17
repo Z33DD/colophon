@@ -635,8 +635,11 @@ class _GroupEditor extends StatelessWidget {
         onChanged();
       },
       borderRadius: BorderRadius.circular(8),
-      constraints: const BoxConstraints(minWidth: 56, minHeight: 34),
-      children: const [Text('AND'), Text('OR')],
+      constraints: const BoxConstraints(minWidth: 56, minHeight: 48),
+      children: [
+        Text(AppLocalizations.of(context)!.conditionAnd),
+        Text(AppLocalizations.of(context)!.conditionOr),
+      ],
     );
   }
 }

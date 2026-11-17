@@ -350,9 +350,7 @@ class _LoginFormState extends State<LoginForm> {
                                     horizontal: 8,
                                     vertical: 4,
                                   ),
-                                  minimumSize: const Size(60, 30),
-                                  tapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
+                                  minimumSize: const Size(60, 48),
                                   backgroundColor:
                                       Theme.of(
                                         context,
