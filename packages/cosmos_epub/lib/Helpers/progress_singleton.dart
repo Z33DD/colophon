@@ -55,6 +55,10 @@ class BookProgressSingleton {
     );
   }
 
+  /// Replaces the whole position, e.g. with one restored from sync.
+  Future<bool> setPosition(String bookId, ReaderPosition position) =>
+      _write(bookId, position);
+
   Future<bool> _write(String bookId, ReaderPosition position) async {
     try {
       await _box.write(_key(bookId), position.toStored());

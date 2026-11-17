@@ -7,12 +7,11 @@ import 'package:calibre_web_companion/core/services/snackbar.dart';
 import 'package:calibre_web_companion/features/book_details/data/repositories/book_details_repository.dart';
 import 'package:calibre_web_companion/features/offline/data/models/offline_book_model.dart';
 import 'package:calibre_web_companion/features/offline/data/repositories/offline_library_repository.dart';
-import 'package:calibre_web_companion/features/reader/data/epub_bookmark_source.dart';
+import 'package:calibre_web_companion/features/reader/data/reader_session.dart';
 import 'package:calibre_web_companion/features/reader/data/internal_reader_formats.dart';
-import 'package:calibre_web_companion/features/reader/presentation/page_reader_launcher.dart';
+import 'package:calibre_web_companion/features/reader/presentation/open_in_reader.dart';
 import 'package:calibre_web_companion/l10n/app_localizations.dart';
 import 'package:calibre_web_companion/shared/ui/status_view.dart';
-import 'package:cosmos_epub/cosmos_epub.dart';
 import 'package:docman/docman.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -140,24 +139,17 @@ class _OfflineLibraryPageState extends State<OfflineLibraryPage> {
         return;
       }
 
-      if (InternalReaderFormats.isPageBased(format)) {
-        await openPageReader(
-          context,
-          bytes: bytes,
-          format: format,
-          bookUuid: book.uuid,
+      // Same session as book details: restore, KOReader offer, progress
+      // for covers and "Continue", and sync on close.
+      await openInReader(
+        context,
+        book: ReaderBook(
+          uuid: book.uuid,
+          id: book.id,
           title: book.title,
-        );
-        return;
-      }
-
-      await CosmosEpub.openFileBook(
-        context: context,
+          format: format,
+        ),
         bytes: bytes,
-        bookId: book.uuid,
-        accentColor: Theme.of(context).colorScheme.primary,
-        bookmarkSource: StoreEpubBookmarkSource.forBook(book.uuid),
-        bookmarkLabels: epubBookmarkLabels(localizations),
       );
     } catch (e) {
       if (mounted) {

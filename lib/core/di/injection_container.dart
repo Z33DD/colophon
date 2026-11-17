@@ -8,6 +8,8 @@ import 'package:calibre_web_companion/core/services/kosync_service.dart';
 import 'package:calibre_web_companion/core/services/library_events.dart';
 import 'package:calibre_web_companion/core/services/reader_cache_service.dart';
 import 'package:calibre_web_companion/core/services/reading_progress_index.dart';
+import 'package:calibre_web_companion/features/reader/data/reader_session.dart';
+import 'package:calibre_web_companion/features/reader/data/reader_sync_sources.dart';
 import 'package:calibre_web_companion/core/services/tag_service.dart';
 import 'package:calibre_web_companion/core/services/webdav_sync_service.dart';
 import 'package:calibre_web_companion/core/services/widget_service.dart';
@@ -127,6 +129,23 @@ Future<void> init() async {
       prefs: getIt<SharedPreferences>(),
       logger: getIt<Logger>(),
       offlineRepository: getIt<OfflineLibraryRepository>(),
+    ),
+  );
+
+  getIt.registerLazySingleton<ReaderSession>(
+    () => ReaderSession(
+      prefs: getIt<SharedPreferences>(),
+      progressIndex: getIt<ReadingProgressIndex>(),
+      events: getIt<LibraryEvents>(),
+      positions: const CosmosPositionStore(),
+      cloud: WebDavPositionSync(
+        prefs: getIt<SharedPreferences>(),
+        service: getIt<WebDavSyncService>(),
+      ),
+      remote: KoSyncProgressSync(getIt<KoSyncService>()),
+      onWidgetProgress:
+          (uuid, progress) =>
+              getIt<WidgetService>().updateProgress(uuid, progress),
     ),
   );
 

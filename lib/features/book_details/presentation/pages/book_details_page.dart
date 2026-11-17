@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:calibre_web_companion/core/di/injection_container.dart';
@@ -9,8 +8,6 @@ import 'package:calibre_web_companion/core/services/library_events.dart';
 import 'package:calibre_web_companion/core/services/reading_progress_index.dart';
 import 'package:calibre_web_companion/core/services/server_capabilities.dart';
 import 'package:calibre_web_companion/core/services/snackbar.dart';
-import 'package:calibre_web_companion/core/services/webdav_sync_service.dart';
-import 'package:calibre_web_companion/core/services/widget_service.dart';
 import 'package:calibre_web_companion/core/utils/pubdate.dart';
 import 'package:calibre_web_companion/features/book_details/bloc/book_details_bloc.dart';
 import 'package:calibre_web_companion/features/book_details/bloc/book_details_event.dart';
@@ -32,10 +29,10 @@ import 'package:calibre_web_companion/features/discover_details/presentation/pag
 import 'package:calibre_web_companion/features/homepage/app_destination.dart';
 import 'package:calibre_web_companion/features/homepage/bloc/homepage_bloc.dart';
 import 'package:calibre_web_companion/features/homepage/bloc/homepage_event.dart';
-import 'package:calibre_web_companion/features/reader/data/epub_bookmark_source.dart';
 import 'package:calibre_web_companion/features/reader/data/internal_reader_formats.dart';
 import 'package:calibre_web_companion/features/reader/data/reader_preferences.dart';
-import 'package:calibre_web_companion/features/reader/presentation/page_reader_launcher.dart';
+import 'package:calibre_web_companion/features/reader/data/reader_session.dart';
+import 'package:calibre_web_companion/features/reader/presentation/open_in_reader.dart';
 import 'package:calibre_web_companion/features/settings/bloc/settings_bloc.dart';
 import 'package:calibre_web_companion/features/settings/data/models/book_details_action.dart';
 import 'package:calibre_web_companion/features/settings/data/models/book_details_section.dart';
@@ -48,14 +45,11 @@ import 'package:calibre_web_companion/shared/utils/status_colors.dart';
 import 'package:calibre_web_companion/shared/widgets/app_dialog_button.dart';
 import 'package:calibre_web_companion/shared/widgets/app_options_sheet.dart';
 import 'package:calibre_web_companion/shared/widgets/app_skeletonizer.dart';
-import 'package:cosmos_epub/cosmos_epub.dart';
-import 'package:cosmos_epub/show_epub.dart' as cosmos_reader;
 import 'package:docman/docman.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart' as intl;
-import 'package:logger/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
@@ -91,14 +85,6 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
   }
 
   bool _didAutoOpen = false;
-  int _lastWidgetPercent = -1;
-  late final WebDavSyncService _webDavService;
-  Timer? _readerProgressTimer;
-  int? _koSyncBookId;
-  String? _koSyncBookUuid;
-  double? _koSyncPercentage;
-  int _koSyncSpineIndex = -1;
-  double? _koSyncPushedPercentage;
   KoSyncProgress? _koSyncProgress;
   // Shelf books open with id 0 until the details resolve the real one.
   late int _bookId = widget.bookViewModel.id;
@@ -106,7 +92,6 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
 
   @override
   void dispose() {
-    _readerProgressTimer?.cancel();
     super.dispose();
   }
 
@@ -224,8 +209,6 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
   @override
   void initState() {
     super.initState();
-    _webDavService = WebDavSyncService(logger: GetIt.instance<Logger>());
-    _initWebDav();
     _loadKoSyncProgress();
   }
 
@@ -241,129 +224,31 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
     setState(() => _koSyncProgress = progress);
   }
 
-  Future<void> _initWebDav() async {
-    final prefs = await SharedPreferences.getInstance();
-    final enabled = prefs.getBool('webdav_enabled') ?? false;
-    if (enabled) {
-      _webDavService.init(
-        prefs.getString('webdav_url') ?? '',
-        prefs.getString('webdav_username') ?? '',
-        prefs.getString('webdav_password') ?? '',
-        allowSelfSigned: prefs.getBool('allow_self_signed') ?? false,
-      );
-    }
-  }
-
+  /// Opens the book in the in-app reader. The session restores, syncs and
+  /// records progress; this page only reacts to where the reader stopped.
   Future<void> _openInternalReader(
     BuildContext context,
     Uint8List bytes,
     BookDetailsModel bookDetailsModel,
   ) async {
-    final localization = AppLocalizations.of(context)!;
-    final bookUuid = bookDetailsModel.uuid;
     final format = _readerFormat;
-
-    if (!InternalReaderFormats.bytesMatch(format, bytes)) {
-      context.showSnackBar(
-        localization.errorOpeningBookInInternalReader,
-        isError: true,
-      );
-      return;
-    }
-
-    if (InternalReaderFormats.isPageBased(format)) {
-      final percentage = await openPageReader(
-        context,
-        bytes: bytes,
-        format: format,
-        bookUuid: bookUuid,
-        title: bookDetailsModel.title,
-        onPageChanged:
-            (page, pageCount) =>
-                _pushReadingProgressToWidget(bookUuid, page, pageCount),
-      );
-      await _recordProgress(bookUuid, percentage);
-      if (context.mounted) _autoMarkAsRead(context, percentage);
-      return;
-    }
-
-    await _restoreReaderProgressFromCloud(bookUuid);
-    if (!context.mounted) return;
-
-    final looksLikeZip =
-        bytes.length >= 4 &&
-        bytes[0] == 0x50 &&
-        bytes[1] == 0x4B &&
-        bytes[2] == 0x03 &&
-        bytes[3] == 0x04;
-    if (!looksLikeZip) {
-      if (context.mounted) {
-        context.showSnackBar(
-          localization.errorOpeningBookInInternalReader,
-          isError: true,
-        );
-      }
-      return;
-    }
-
-    final startPercentage = await _koSyncStartPercentage(
+    final percentage = await openInReader(
       context,
-      bytes,
-      bookDetailsModel,
+      book: ReaderBook(
+        uuid: bookDetailsModel.uuid,
+        id: bookDetailsModel.id,
+        title: bookDetailsModel.title,
+        format: format,
+      ),
+      bytes: bytes,
     );
-    if (!context.mounted) return;
-
-    _koSyncBookId = bookDetailsModel.id;
-    _koSyncBookUuid = bookUuid;
-    _koSyncPercentage = null;
-    _koSyncSpineIndex = -1;
-    _koSyncPushedPercentage = startPercentage;
-
-    try {
-      await CosmosEpub.openFileBook(
-        context: context,
-        bytes: bytes,
-        bookId: bookUuid,
-        startPercentage: startPercentage,
-        accentColor: Theme.of(context).colorScheme.primary,
-        bookmarkSource: StoreEpubBookmarkSource.forBook(bookUuid),
-        bookmarkLabels: epubBookmarkLabels(localization),
-        onPageFlip: (currentPage, totalPages) {
-          _scheduleReaderProgressSync(bookUuid);
-          _pushReadingProgressToWidget(bookUuid, currentPage, totalPages);
-        },
-        onProgressChanged: (percentage, spineIndex) {
-          _koSyncPercentage = percentage;
-          _koSyncSpineIndex = spineIndex;
-        },
-      );
-    } catch (e) {
-      if (context.mounted) {
-        context.showSnackBar(
-          '${localization.errorOpeningBookInInternalReader} $e',
-          isError: true,
-        );
-      }
-      return;
-    }
-
-    _readerProgressTimer?.cancel();
-    await _recordProgress(bookUuid, _koSyncPercentage);
-    if (context.mounted) _autoMarkAsRead(context, _koSyncPercentage);
-    await _saveReaderProgressToCloud(bookUuid);
-    await _pushKoSyncProgress();
+    if (!mounted) return;
+    setState(() {});
+    if (context.mounted) _autoMarkAsRead(context, percentage);
 
     // Re-read rather than reuse what was pushed: the server keeps the furthest
     // position, so a push from behind another device leaves that one standing.
-    await _loadKoSyncProgress();
-  }
-
-  /// Keeps the last percentage for covers and "Continue · 64%".
-  Future<void> _recordProgress(String bookUuid, double? percentage) async {
-    if (percentage == null) return;
-    await getIt<ReadingProgressIndex>().record(bookUuid, percentage);
-    if (mounted) setState(() {});
-    _publish(BookChange.progress);
+    if (!InternalReaderFormats.isPageBased(format)) await _loadKoSyncProgress();
   }
 
   void _autoMarkAsRead(BuildContext context, double? percentage) {
@@ -379,57 +264,6 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
     final book = bloc.state.bookDetails;
     if (book == null || bloc.state.isBookRead) return;
     bloc.add(ToggleReadStatus(book.id));
-  }
-
-  void _scheduleReaderProgressSync(String bookUuid) {
-    _readerProgressTimer?.cancel();
-    _readerProgressTimer = Timer(const Duration(seconds: 5), () {
-      _saveReaderProgressToCloud(bookUuid);
-      _pushKoSyncProgress();
-    });
-  }
-
-  /// Shares the reader's position with the other devices. Debounced while
-  /// reading and run once more when the reader closes.
-  Future<void> _pushKoSyncProgress() async {
-    final bookId = _koSyncBookId;
-    final bookUuid = _koSyncBookUuid;
-    final percentage = _koSyncPercentage;
-    if (bookId == null || bookUuid == null || percentage == null) return;
-
-    final pushed = _koSyncPushedPercentage;
-    if (pushed != null && (pushed - percentage).abs() < 0.1) return;
-
-    final koSync = getIt<KoSyncService>();
-    if (!await koSync.isEnabled()) return;
-
-    final ok = await koSync.pushProgress(
-      bookId: bookId,
-      percentage: percentage,
-      spineIndex: _koSyncSpineIndex,
-    );
-    if (!ok) return;
-
-    _koSyncPushedPercentage = percentage;
-
-    // Our own position must not come back as an offer to jump on next open.
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble('kosync_applied_$bookUuid', percentage);
-  }
-
-  void _pushReadingProgressToWidget(
-    String bookUuid,
-    int currentPage,
-    int totalPages,
-  ) {
-    if (totalPages <= 0) return;
-    final percent = (((currentPage + 1) / totalPages) * 100).round().clamp(
-      0,
-      100,
-    );
-    if (percent == _lastWidgetPercent) return;
-    _lastWidgetPercent = percent;
-    getIt<WidgetService>().updateProgress(bookUuid, percent / 100);
   }
 
   Future<void> _runAutoOpen(
@@ -480,132 +314,6 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
         pathTemplate: settingsState.downloadPathTemplate,
       ),
     );
-  }
-
-  /// Asks the KOReader sync endpoint where the user is in this book and, if
-  /// that is somewhere else than the app last jumped to, offers to follow it.
-  Future<double?> _koSyncStartPercentage(
-    BuildContext context,
-    Uint8List bytes,
-    BookDetailsModel book,
-  ) async {
-    final koSync = getIt<KoSyncService>();
-    if (!await koSync.isEnabled()) return null;
-
-    final KoSyncProgress? remote;
-    try {
-      remote = await koSync.fetchProgress(
-        document: KoSyncService.partialMd5(bytes),
-        fallbackDocument: book.id.toString(),
-      );
-    } catch (_) {
-      return null;
-    }
-    if (remote == null || remote.percentage <= 0) return null;
-
-    // Following the same position twice would re-ask on every open and undo
-    // reading the app did since, so a position we already applied is done.
-    final prefs = await SharedPreferences.getInstance();
-    final appliedKey = 'kosync_applied_${book.uuid}';
-    final applied = prefs.getDouble(appliedKey);
-    if (applied != null && (applied - remote.percentage).abs() < 0.5) {
-      return null;
-    }
-
-    if (!context.mounted) return null;
-    final localization = AppLocalizations.of(context)!;
-    final percentage = remote.percentage.toStringAsFixed(0);
-    final device = remote.device;
-
-    final follow = await showDialog<bool>(
-      context: context,
-      builder:
-          (dialogContext) => AlertDialog(
-            title: Text(localization.koSyncContinueTitle),
-            content: Text(
-              device == null || device.isEmpty
-                  ? localization.koSyncContinueBodyUnknownDevice(percentage)
-                  : localization.koSyncContinueBody(device, percentage),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: Text(localization.koSyncStayHere),
-              ),
-              AppDialogButton(
-                onPressed: () => Navigator.of(dialogContext).pop(true),
-                label: localization.koSyncJumpThere,
-              ),
-            ],
-          ),
-    );
-
-    // Remember it either way: declining once should not mean being asked
-    // again on the next open for the same position.
-    await prefs.setDouble(appliedKey, remote.percentage);
-
-    return follow == true ? remote.percentage : null;
-  }
-
-  Future<void> _restoreReaderProgressFromCloud(String bookUuid) async {
-    final prefs = await SharedPreferences.getInstance();
-    if (!(prefs.getBool('webdav_enabled') ?? false)) return;
-    final url = prefs.getString('webdav_url') ?? '';
-    if (url.isEmpty) return;
-    try {
-      _webDavService.init(
-        url,
-        prefs.getString('webdav_username') ?? '',
-        prefs.getString('webdav_password') ?? '',
-        allowSelfSigned: prefs.getBool('allow_self_signed') ?? false,
-      );
-
-      final localTs = prefs.getInt('reader_progress_ts_$bookUuid') ?? 0;
-      final serverData = await _webDavService.fetchProgress();
-      final entry = serverData[bookUuid];
-      if (entry is! Map) return;
-      final serverTs = (entry['timestamp'] as int?) ?? 0;
-      if (serverTs <= localTs) return;
-
-      final decoded = jsonDecode(entry['locator'] as String);
-      if (decoded is! Map) return;
-      final chapter = decoded['chapter'] as int?;
-      final page = decoded['page'] as int?;
-      if (chapter != null) {
-        await cosmos_reader.bookProgress.setCurrentChapterIndex(
-          bookUuid,
-          chapter,
-        );
-      }
-      if (page != null) {
-        await cosmos_reader.bookProgress.setCurrentPageIndex(bookUuid, page);
-      }
-      await prefs.setInt('reader_progress_ts_$bookUuid', serverTs);
-    } catch (_) {}
-  }
-
-  Future<void> _saveReaderProgressToCloud(String bookUuid) async {
-    final prefs = await SharedPreferences.getInstance();
-    if (!(prefs.getBool('webdav_enabled') ?? false)) return;
-    final url = prefs.getString('webdav_url') ?? '';
-    if (url.isEmpty) return;
-    try {
-      _webDavService.init(
-        url,
-        prefs.getString('webdav_username') ?? '',
-        prefs.getString('webdav_password') ?? '',
-        allowSelfSigned: prefs.getBool('allow_self_signed') ?? false,
-      );
-
-      final progress = cosmos_reader.bookProgress.getBookProgress(bookUuid);
-      final now = DateTime.now().millisecondsSinceEpoch;
-      final locator = jsonEncode({
-        'chapter': progress.currentChapterIndex ?? 0,
-        'page': progress.currentPageIndex ?? 0,
-      });
-      await _webDavService.saveProgress(bookUuid, locator, now);
-      await prefs.setInt('reader_progress_ts_$bookUuid', now);
-    } catch (_) {}
   }
 
   @override
