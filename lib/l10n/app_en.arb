@@ -674,5 +674,6 @@
         "type": "int"
       }
     }
-  }
+  },
+  "themeSourceCirculation": "Companion"
 }

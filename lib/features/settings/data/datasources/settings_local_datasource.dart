@@ -25,7 +25,9 @@ class SettingsLocalDataSource {
     try {
       return SettingsModel.fromJson({
         'theme_mode': sharedPreferences.getInt('theme_mode') ?? 0,
-        'theme_source': sharedPreferences.getInt('theme_source') ?? 0,
+        'theme_source':
+            sharedPreferences.getInt('theme_source') ??
+            ThemeSource.circulation.index,
         'theme_color_key':
             sharedPreferences.getString('theme_color_key') ?? 'lightGreen',
         'downloader_enabled':

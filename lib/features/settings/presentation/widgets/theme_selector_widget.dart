@@ -183,6 +183,10 @@ class ThemeSelectorWidget extends StatelessWidget {
                       },
                       items: [
                         DropdownMenuItem(
+                          value: ThemeSource.circulation,
+                          child: Text(localizations.themeSourceCirculation),
+                        ),
+                        DropdownMenuItem(
                           value: ThemeSource.system,
                           child: Text(localizations.system),
                         ),

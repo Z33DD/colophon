@@ -86,7 +86,7 @@ class SettingsModel extends Equatable {
   factory SettingsModel.fromJson(Map<String, dynamic> json) {
     return SettingsModel(
       themeMode: ThemeMode.values[json['theme_mode'] ?? 0],
-      themeSource: ThemeSource.values[json['theme_source'] ?? 0],
+      themeSource: _themeSourceFromIndex(json['theme_source']),
       selectedColorKey: json['theme_color_key'] ?? 'lightGreen',
       isDownloaderEnabled: json['downloader_enabled'] ?? false,
       downloaderUrl: json['downloader_url'] ?? '',
@@ -215,3 +215,10 @@ class SettingsModel extends Equatable {
     enabledCategoryItems,
   ];
 }
+
+/// Unknown or missing values fall back to the default identity instead of
+/// throwing on a stale index.
+ThemeSource _themeSourceFromIndex(Object? index) =>
+    index is int && index >= 0 && index < ThemeSource.values.length
+        ? ThemeSource.values[index]
+        : ThemeSource.circulation;

@@ -122,6 +122,17 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/icon.png
+
+  # Stamp and counter face for the Circulation Desk theme (SIL OFL 1.1,
+  # licence in assets/fonts/barlow_condensed/OFL.txt). UI text uses the
+  # platform Roboto.
+  fonts:
+    - family: BarlowCondensed
+      fonts:
+        - asset: assets/fonts/barlow_condensed/BarlowCondensed-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/barlow_condensed/BarlowCondensed-Bold.ttf
+          weight: 700
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

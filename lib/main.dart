@@ -11,6 +11,7 @@ import 'package:calibre_web_companion/core/services/download_manager.dart';
 import 'package:calibre_web_companion/core/services/session_reauth_service.dart';
 import 'package:calibre_web_companion/core/services/snackbar.dart';
 import 'package:calibre_web_companion/core/services/widget_service.dart';
+import 'package:calibre_web_companion/core/theme/app_theme.dart';
 import 'package:calibre_web_companion/core/utils/app_text_scaler.dart';
 import 'package:calibre_web_companion/features/book_details/bloc/book_details_bloc.dart';
 import 'package:calibre_web_companion/features/book_details/presentation/pages/book_details_page.dart';
@@ -390,38 +391,36 @@ class _MyAppState extends State<MyApp> {
       builder: (context, settingsState) {
         return DynamicColorBuilder(
           builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
-            final seedColor =
-                settingsState.themeSource == ThemeSource.custom
-                    ? settingsState.selectedColor
-                    : Colors.lightGreen;
-
-            final lightScheme =
-                settingsState.themeSource == ThemeSource.system &&
-                        lightDynamic != null
-                    ? lightDynamic
-                    : ColorScheme.fromSeed(
-                      seedColor: seedColor,
-                      brightness: Brightness.light,
-                    );
-
-            final darkScheme =
-                settingsState.themeSource == ThemeSource.system &&
-                        darkDynamic != null
-                    ? darkDynamic
-                    : ColorScheme.fromSeed(
-                      seedColor: seedColor,
-                      brightness: Brightness.dark,
-                    );
-
-            final lightTheme = ThemeData(
-              useMaterial3: true,
-              colorScheme: lightScheme,
-            );
-
-            final darkTheme = ThemeData(
-              useMaterial3: true,
-              colorScheme: darkScheme,
-            );
+            final eInk = settingsState.isEInkMode;
+            final ThemeData lightTheme;
+            final ThemeData darkTheme;
+            switch (settingsState.themeSource) {
+              case ThemeSource.circulation:
+                lightTheme = AppTheme.circulation(Brightness.light, eInk: eInk);
+                darkTheme = AppTheme.circulation(Brightness.dark, eInk: eInk);
+              case ThemeSource.system || ThemeSource.custom:
+                final seedColor =
+                    settingsState.themeSource == ThemeSource.custom
+                        ? settingsState.selectedColor
+                        : Colors.lightGreen;
+                final useDynamic =
+                    settingsState.themeSource == ThemeSource.system;
+                lightTheme = AppTheme.fromScheme(
+                  useDynamic && lightDynamic != null
+                      ? lightDynamic
+                      : ColorScheme.fromSeed(seedColor: seedColor),
+                  eInk: eInk,
+                );
+                darkTheme = AppTheme.fromScheme(
+                  useDynamic && darkDynamic != null
+                      ? darkDynamic
+                      : ColorScheme.fromSeed(
+                        seedColor: seedColor,
+                        brightness: Brightness.dark,
+                      ),
+                  eInk: eInk,
+                );
+            }
 
             return SkeletonizerConfig(
               data: SkeletonizerConfigData(

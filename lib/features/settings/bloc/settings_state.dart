@@ -64,7 +64,7 @@ class SettingsState extends Equatable {
     this.status = SettingsStatus.initial,
     this.feedbackStatus = SettingsFeedbackStatus.initial,
     this.themeMode = ThemeMode.system,
-    this.themeSource = ThemeSource.custom,
+    this.themeSource = ThemeSource.circulation,
     this.selectedColorKey = 'lightGreen',
     this.isDownloaderEnabled = false,
     this.downloaderUrl = '',
