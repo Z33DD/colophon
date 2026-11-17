@@ -828,5 +828,12 @@
       }
     }
   },
-  "cancelDownload": "Cancel download"
+  "cancelDownload": "Cancel download",
+  "sendMethodBrowser": "Browser",
+  "sendMethodEmail": "Email",
+  "deviceKobo": "Kobo",
+  "deviceKindle": "Kindle",
+  "sendFormat": "Format",
+  "sendMethodLabel": "Send with",
+  "deviceLabel": "Device"
 }

@@ -6,6 +6,7 @@ import 'package:calibre_web_companion/features/book_details/bloc/book_details_bl
 import 'package:calibre_web_companion/features/book_details/bloc/book_details_event.dart';
 import 'package:calibre_web_companion/features/book_details/bloc/book_details_state.dart';
 import 'package:calibre_web_companion/features/book_details/data/models/book_details_model.dart';
+import 'package:calibre_web_companion/features/book_details/data/send_preferences.dart';
 import 'package:calibre_web_companion/features/settings/bloc/settings_bloc.dart';
 import 'package:calibre_web_companion/features/settings/bloc/settings_state.dart';
 import 'package:calibre_web_companion/l10n/app_localizations.dart';
@@ -14,8 +15,8 @@ import 'package:calibre_web_companion/shared/widgets/app_dialog_button.dart';
 import 'package:docman/docman.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
-enum SendMethod { browser, email }
+import 'package:get_it/get_it.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SendToEreaderWidget extends StatelessWidget {
   final BookDetailsModel book;
@@ -61,211 +62,168 @@ class SendToEreaderWidget extends StatelessWidget {
     AppLocalizations localizations,
   ) {
     final parentContext = context;
-    final TextEditingController codeController = TextEditingController();
-    bool isKindle = false;
-    SendMethod sendMethod = SendMethod.browser;
+    final prefs = GetIt.instance<SharedPreferences>();
+    final codeController = TextEditingController();
+    var choice = SendPreferences.load(prefs);
+    var format = choice.formatFor(book.formats);
+    final formats = {for (final f in book.formats) f.toLowerCase()}.toList();
 
     showDialog(
       context: context,
       builder:
           (context) => StatefulBuilder(
-            builder:
-                (context, setState) => AlertDialog(
-                  title: Text(localizations.sendToKindleKobo),
-                  content: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildSendMethodToggle(context, sendMethod, (method) {
-                          setState(() => sendMethod = method);
-                        }),
+            builder: (context, setState) {
+              final needsCode = choice.method == SendMethod.browser;
+              final canSend =
+                  !needsCode || codeController.text.trim().length == 4;
+              return AlertDialog(
+                title: Text(localizations.sendToKindleKobo),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        localizations.sendMethodLabel,
+                        style: Theme.of(context).textTheme.labelLarge,
+                      ),
+                      const SizedBox(height: 8),
+                      SegmentedButton<SendMethod>(
+                        segments: [
+                          ButtonSegment(
+                            value: SendMethod.browser,
+                            icon: const Icon(Icons.public_rounded),
+                            label: Text(localizations.sendMethodBrowser),
+                          ),
+                          ButtonSegment(
+                            value: SendMethod.email,
+                            icon: const Icon(Icons.mail_outline_rounded),
+                            label: Text(localizations.sendMethodEmail),
+                          ),
+                        ],
+                        selected: {choice.method},
+                        onSelectionChanged:
+                            (value) => setState(
+                              () =>
+                                  choice = SendPreferences(
+                                    method: value.single,
+                                    kindle: choice.kindle,
+                                    format: choice.format,
+                                  ),
+                            ),
+                      ),
+                      const SizedBox(height: 16),
+                      if (needsCode) ...[
+                        Text(
+                          localizations.deviceLabel,
+                          style: Theme.of(context).textTheme.labelLarge,
+                        ),
+                        const SizedBox(height: 8),
+                        SegmentedButton<bool>(
+                          segments: [
+                            ButtonSegment(
+                              value: false,
+                              label: Text(localizations.deviceKobo),
+                            ),
+                            ButtonSegment(
+                              value: true,
+                              label: Text(localizations.deviceKindle),
+                            ),
+                          ],
+                          selected: {choice.kindle},
+                          onSelectionChanged:
+                              (value) => setState(
+                                () =>
+                                    choice = SendPreferences(
+                                      method: choice.method,
+                                      kindle: value.single,
+                                      format: choice.format,
+                                    ),
+                              ),
+                        ),
                         const SizedBox(height: 16),
-
-                        // Browser-specific options
-                        if (sendMethod == SendMethod.browser) ...[
-                          _buildEReaderTypeToggle(context, isKindle, (kindle) {
-                            setState(() => isKindle = kindle);
-                          }),
+                        _buildCodeInput(
+                          context,
+                          localizations,
+                          codeController,
+                          onChanged: () => setState(() {}),
+                        ),
+                      ] else ...[
+                        if (formats.length > 1) ...[
+                          Text(
+                            localizations.sendFormat,
+                            style: Theme.of(context).textTheme.labelLarge,
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            children: [
+                              for (final f in formats)
+                                ChoiceChip(
+                                  label: Text(f.toUpperCase()),
+                                  selected: f == format,
+                                  onSelected: (_) => setState(() => format = f),
+                                ),
+                            ],
+                          ),
                           const SizedBox(height: 16),
-                          _buildCodeInput(
-                            context,
-                            localizations,
-                            codeController,
-                          ),
                         ],
-
-                        if (sendMethod == SendMethod.email) ...[
-                          _buildEmailInfo(context, localizations),
-                        ],
+                        _buildEmailInfo(context, localizations),
                       ],
-                    ),
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: Text(localizations.cancel),
-                    ),
-                    AppDialogButton(
-                      onPressed:
-                          () => _handleSendAction(
-                            parentContext,
-                            context,
-                            localizations,
-                            sendMethod,
-                            codeController,
-                            isKindle,
-                          ),
-                      label: localizations.send,
-                    ),
-                  ],
-                ),
-          ),
-    );
-  }
-
-  Widget _buildSendMethodToggle(
-    BuildContext context,
-    SendMethod sendMethod,
-    ValueChanged<SendMethod> onChanged,
-  ) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: GestureDetector(
-              onTap: () => onChanged(SendMethod.browser),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  color:
-                      sendMethod == SendMethod.browser
-                          ? Theme.of(context).colorScheme.primary
-                          : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  'Browser',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color:
-                        sendMethod == SendMethod.browser
-                            ? Theme.of(context).colorScheme.onPrimary
-                            : Theme.of(context).colorScheme.onSurfaceVariant,
+                    ],
                   ),
                 ),
-              ),
-            ),
-          ),
-          Expanded(
-            child: GestureDetector(
-              onTap: () => onChanged(SendMethod.email),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  color:
-                      sendMethod == SendMethod.email
-                          ? Theme.of(context).colorScheme.primary
-                          : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  'Email',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color:
-                        sendMethod == SendMethod.email
-                            ? Theme.of(context).colorScheme.onPrimary
-                            : Theme.of(context).colorScheme.onSurfaceVariant,
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(localizations.cancel),
                   ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEReaderTypeToggle(
-    BuildContext context,
-    bool isKindle,
-    ValueChanged<bool> onChanged,
-  ) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: GestureDetector(
-              onTap: () => onChanged(false),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  color:
-                      !isKindle
-                          ? Theme.of(context).colorScheme.secondary
-                          : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  'Kobo',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color:
-                        !isKindle
-                            ? Theme.of(context).colorScheme.onSecondary
-                            : Theme.of(context).colorScheme.onSurfaceVariant,
+                  AppDialogButton(
+                    // Disabled until the 4-character code is complete.
+                    onPressed:
+                        canSend
+                            ? () {
+                              final chosen = SendPreferences(
+                                method: choice.method,
+                                kindle: choice.kindle,
+                                format:
+                                    choice.method == SendMethod.email
+                                        ? format
+                                        : choice.format,
+                              );
+                              chosen.save(prefs);
+                              Navigator.pop(context);
+                              if (chosen.method == SendMethod.browser) {
+                                _sendToEReaderViaBrowser(
+                                  parentContext,
+                                  localizations,
+                                  codeController.text.trim().toUpperCase(),
+                                  chosen.kindle,
+                                );
+                              } else {
+                                _sendToEReaderByEmail(
+                                  parentContext,
+                                  localizations,
+                                  format,
+                                );
+                              }
+                            }
+                            : null,
+                    label: localizations.send,
                   ),
-                ),
-              ),
-            ),
+                ],
+              );
+            },
           ),
-          Expanded(
-            child: GestureDetector(
-              onTap: () => onChanged(true),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  color:
-                      isKindle
-                          ? Theme.of(context).colorScheme.secondary
-                          : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  'Kindle',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color:
-                        isKindle
-                            ? Theme.of(context).colorScheme.onSecondary
-                            : Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
   Widget _buildCodeInput(
     BuildContext context,
     AppLocalizations localizations,
-    TextEditingController codeController,
-  ) {
+    TextEditingController codeController, {
+    VoidCallback? onChanged,
+  }) {
     return BlocBuilder<SettingsBloc, SettingsState>(
       builder: (context, settingsState) {
         return Column(
@@ -287,6 +245,7 @@ class SendToEreaderWidget extends StatelessWidget {
                   text: value.toUpperCase(),
                   selection: TextSelection.collapsed(offset: value.length),
                 );
+                onChanged?.call();
               },
               style: const TextStyle(
                 fontSize: 24,
@@ -361,32 +320,6 @@ class SendToEreaderWidget extends StatelessWidget {
     );
   }
 
-  void _handleSendAction(
-    BuildContext parentContext,
-    BuildContext dialogContext,
-    AppLocalizations localizations,
-    SendMethod sendMethod,
-    TextEditingController codeController,
-    bool isKindle,
-  ) {
-    if (sendMethod == SendMethod.browser) {
-      final code = codeController.text.trim().toUpperCase();
-      if (code.length != 4) {
-        parentContext.showSnackBar(
-          localizations.pleaseEnter4DigitCode,
-          isError: true,
-        );
-        return;
-      }
-
-      Navigator.pop(dialogContext);
-      _sendToEReaderViaBrowser(parentContext, localizations, code, isKindle);
-    } else {
-      Navigator.pop(dialogContext);
-      _sendToEReaderByEmail(parentContext, localizations);
-    }
-  }
-
   void _sendToEReaderViaBrowser(
     BuildContext context,
     AppLocalizations localizations,
@@ -448,11 +381,12 @@ class SendToEreaderWidget extends StatelessWidget {
   void _sendToEReaderByEmail(
     BuildContext context,
     AppLocalizations localizations,
+    String format,
   ) {
     _showTransferStatusDialog(context, localizations);
 
     context.read<BookDetailsBloc>().add(
-      SendToEReaderByEmail(bookId: book.id.toString(), format: 'epub'),
+      SendToEReaderByEmail(bookId: book.id.toString(), format: format),
     );
   }
 
