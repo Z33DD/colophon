@@ -1,3 +1,4 @@
+import 'package:cosmos_epub/Helpers/page_layout.dart';
 import 'package:cosmos_epub/Helpers/context_extensions.dart';
 import 'package:cosmos_epub/Helpers/epub_content_parser.dart';
 import 'package:cosmos_epub/Helpers/functions.dart';
@@ -587,7 +588,9 @@ class ShowEpubState extends State<ShowEpub> {
 
   prevChapter() async {
     _resetSwipeState();
-    await bookProgress.setCurrentPageIndex(bookId, 0);
+    // Turning back from a chapter's first page continues on the previous
+    // chapter's last page, like turning a page in a book.
+    await bookProgress.setCurrentPageIndex(bookId, openAtEnd);
 
     var index = bookProgress.getBookProgress(bookId).currentChapterIndex ?? 0;
 
@@ -709,11 +712,11 @@ class ShowEpubState extends State<ShowEpub> {
                                                   -1,
                                             );
 
+                                            // Save the page as is: saving the
+                                            // last page as 0 reopened books at
+                                            // the chapter start.
                                             bookProgress.setCurrentPageIndex(
-                                                bookId,
-                                                currentPage == totalPages - 1
-                                                    ? 0
-                                                    : currentPage);
+                                                bookId, currentPage);
 
                                             // Reset swipe counters when not on boundary pages
                                             if (currentPage != totalPages - 1) {

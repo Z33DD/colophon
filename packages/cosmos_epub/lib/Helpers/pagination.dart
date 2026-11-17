@@ -2,7 +2,7 @@ import 'package:cosmos_epub/Component/highlight_toolbar.dart';
 import 'package:cosmos_epub/Helpers/epub_content_parser.dart';
 import 'package:cosmos_epub/Helpers/html_paginator.dart';
 import 'package:cosmos_epub/Helpers/html_text_builder.dart';
-import 'package:cosmos_epub/Helpers/progress_mapping.dart';
+import 'package:cosmos_epub/Helpers/page_layout.dart';
 import 'package:cosmos_epub/Model/highlight_model.dart';
 import 'package:cosmos_epub/PageFlip/builders/builder.dart' as flip_cache;
 import 'package:cosmos_epub/PageFlip/page_flip_widget.dart';
@@ -98,6 +98,12 @@ String _hyphenateHtml(String html) {
     },
   );
 }
+
+
+/// One source for EPUB page padding: the paginator measures inside it and
+/// the page draws with it, so a page never holds more text than fits.
+PageInsets epubPageInsets() =>
+    PageInsets(left: 20.w, right: 20.w, top: 60.h, bottom: 40.h);
 
 class PagingTextHandler {
   final Function paginate;
@@ -201,9 +207,10 @@ class _PagingWidgetState extends State<PagingWidget> {
     }
 
     // Split HTML into page-sized chunks (before hyphenation so measurement is clean)
+    final content = _insets.contentSize(pageSize);
     final paginator = HtmlPaginator(
-      pageWidth: pageSize.width - 20.w,
-      pageHeight: pageSize.height - 100.h,
+      pageWidth: content.width,
+      pageHeight: content.height,
       fontSize: widget.style.fontSize ?? 17.0,
       fontFamily: widget.rawFontFamily,
       fontPackage: 'cosmos_epub',
@@ -241,7 +248,9 @@ class _PagingWidgetState extends State<PagingWidget> {
 
     // Report the resolved page, so a jumped-to position is recorded like any
     // other and does not fall back to the chapter start on the next open.
-    if (widget.starterPageFraction != null && pageHtmlCount > 0) {
+    if ((widget.starterPageFraction != null ||
+            widget.starterPageIndex == openAtEnd) &&
+        pageHtmlCount > 0) {
       final resolved = _resolveInitialIndex(pageHtmlCount);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
@@ -251,15 +260,13 @@ class _PagingWidgetState extends State<PagingWidget> {
     }
   }
 
-  int _resolveInitialIndex(int pageCount) {
-    if (pageCount <= 0) return 0;
+  int _resolveInitialIndex(int pageCount) => resolveStartPage(
+    pageCount: pageCount,
+    startIndex: widget.starterPageIndex,
+    fraction: widget.starterPageFraction,
+  );
 
-    final fraction = widget.starterPageFraction;
-    if (fraction != null) return pageIndexForFraction(fraction, pageCount);
-
-    final start = widget.starterPageIndex;
-    return start > 0 && start < pageCount ? start : 0;
-  }
+  PageInsets get _insets => epubPageInsets();
 
   @override
   Widget build(BuildContext context) {
@@ -532,7 +539,10 @@ class _HighlightablePageState extends State<_HighlightablePage> {
               physics: const BouncingScrollPhysics(),
               child: Padding(
                 padding: EdgeInsets.only(
-                    bottom: 40.h, top: 60.h, left: 20.w, right: 20.w),
+                    bottom: epubPageInsets().bottom,
+                    top: epubPageInsets().top,
+                    left: epubPageInsets().left,
+                    right: epubPageInsets().right),
                 child: DefaultTextStyle(
                   style: widget.style.copyWith(height: 1.4),
                   child: Directionality(
