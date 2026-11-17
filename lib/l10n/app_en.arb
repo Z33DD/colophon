@@ -712,5 +712,82 @@
   "navRequests": "Requests",
   "offlineDiagnose": "Diagnose",
   "offlineShellBanner": "Can't reach your server. Downloaded books are still available.",
-  "needsServer": "Needs your server"
+  "needsServer": "Needs your server",
+  "libraryEmptyTitle": "Your library is empty",
+  "libraryEmptyMessage": "Books you add to your server appear here.",
+  "libraryNoResultsTitle": "No books match",
+  "libraryNoResultsMessage": "Try another search or filter.",
+  "libraryLoadErrorTitle": "Couldn't load your library",
+  "libraryLoadErrorMessage": "Check that your server is reachable, then try again.",
+  "clearFilters": "Clear filters",
+  "seriesNumber": "{series} {index}",
+  "@seriesNumber": {
+    "placeholders": {
+      "series": {
+        "type": "String"
+      },
+      "index": {
+        "type": "String"
+      }
+    }
+  },
+  "filterAll": "All",
+  "filterUnread": "Unread",
+  "filterRead": "Read",
+  "filterShelves": "Shelves",
+  "filterFormat": "Format",
+  "filterFormatValue": "Format: {format}",
+  "@filterFormatValue": {
+    "placeholders": {
+      "format": {
+        "type": "String"
+      }
+    }
+  },
+  "chooseFormat": "Choose a format",
+  "sortedBy": "Sort: {order}",
+  "@sortedBy": {
+    "placeholders": {
+      "order": {
+        "type": "String"
+      }
+    }
+  },
+  "searchLibraryHint": "Search titles, authors, series",
+  "libraryCountServer": "{count} books · {server}",
+  "@libraryCountServer": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "server": {
+        "type": "String"
+      }
+    }
+  },
+  "serverOrder": "Server order",
+  "searchScopeAuthor": "Author: {value}",
+  "@searchScopeAuthor": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "searchScopeSeries": "Series: {value}",
+  "@searchScopeSeries": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "searchScopeTag": "Tag: {value}",
+  "@searchScopeTag": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  }
 }

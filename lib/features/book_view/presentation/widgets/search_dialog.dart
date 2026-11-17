@@ -1,17 +1,35 @@
 import 'dart:async';
 
 import 'package:calibre_web_companion/core/di/injection_container.dart';
+import 'package:calibre_web_companion/core/navigation/app_route.dart';
 import 'package:calibre_web_companion/core/services/api_service.dart';
+import 'package:calibre_web_companion/core/utils/latest_only.dart';
 import 'package:calibre_web_companion/features/book_view/data/datasources/vocabulary_remote_datasource.dart';
+import 'package:calibre_web_companion/features/book_view/data/models/library_filter.dart';
 import 'package:calibre_web_companion/features/book_view/data/repositories/book_view_repository.dart';
 import 'package:calibre_web_companion/l10n/app_localizations.dart';
-import 'package:calibre_web_companion/shared/widgets/app_dialog_button.dart';
 import 'package:flutter/material.dart';
 
+/// What the user searched for, and which field it must match.
+typedef LibrarySearch = ({String query, SearchScope scope});
+
+/// Full-screen library search with typed suggestions (title, author,
+/// series, tag). Pops a [LibrarySearch], or null when dismissed.
 class SearchDialog extends StatefulWidget {
   final String? initialQuery;
 
   const SearchDialog({super.key, this.initialQuery});
+
+  /// Opens the search view and returns the chosen search.
+  static Future<LibrarySearch?> open(
+    BuildContext context, {
+    String? initialQuery,
+  }) => Navigator.of(context).push<LibrarySearch>(
+    AppRoute(
+      fullscreenDialog: true,
+      builder: (_) => SearchDialog(initialQuery: initialQuery),
+    ),
+  );
 
   @override
   SearchDialogState createState() => SearchDialogState();
@@ -32,6 +50,7 @@ class SearchDialogState extends State<SearchDialog> {
   );
 
   Timer? _debounce;
+  final _latest = LatestOnly();
   bool _loading = false;
   List<_Suggestion> _suggestions = const [];
 
@@ -50,6 +69,7 @@ class SearchDialogState extends State<SearchDialog> {
   }
 
   void _onChanged(String text) {
+    setState(() {}); // shows or hides the clear button
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 250), () => _fetch(text));
   }
@@ -62,13 +82,16 @@ class SearchDialogState extends State<SearchDialog> {
     }
 
     setState(() => _loading = true);
-    final results = await Future.wait([
-      _suggestTitles(query),
-      _vocab.suggest(VocabularyType.authors, query),
-      _vocab.suggest(VocabularyType.series, query),
-      _vocab.suggest(VocabularyType.tags, query),
-    ]);
-    if (!mounted) return;
+    // A slower response for an earlier keystroke must not win.
+    final results = await _latest.run(
+      () => Future.wait([
+        _suggestTitles(query),
+        _vocab.suggest(VocabularyType.authors, query),
+        _vocab.suggest(VocabularyType.series, query),
+        _vocab.suggest(VocabularyType.tags, query),
+      ]),
+    );
+    if (!mounted || results == null) return;
 
     final merged = <_Suggestion>[
       ...results[0].take(4).map((v) => _Suggestion(v, null)),
@@ -103,11 +126,19 @@ class SearchDialogState extends State<SearchDialog> {
     }
   }
 
-  void _submit(String value) {
+  void _submit(String value, [SearchScope scope = SearchScope.any]) {
     final query = value.trim();
     if (query.isEmpty) return;
-    Navigator.of(context).pop(query);
+    Navigator.of(context).pop<LibrarySearch>((query: query, scope: scope));
   }
+
+  static SearchScope _scopeFor(VocabularyType? type) => switch (type) {
+    null => SearchScope.title,
+    VocabularyType.authors => SearchScope.author,
+    VocabularyType.series => SearchScope.series,
+    VocabularyType.tags => SearchScope.tag,
+    VocabularyType.publishers => SearchScope.any,
+  };
 
   IconData _iconFor(VocabularyType? type) {
     switch (type) {
@@ -141,69 +172,61 @@ class SearchDialogState extends State<SearchDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final AppLocalizations localizations = AppLocalizations.of(context)!;
+    final localizations = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
 
-    return AlertDialog(
-      title: Text(localizations.searchBook),
-      content: SizedBox(
-        width: double.maxFinite,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _controller,
-              focusNode: _focusNode,
-              autofocus: true,
-              textInputAction: TextInputAction.search,
-              decoration: InputDecoration(
-                labelText: localizations.enterTitleAuthorOrTags,
-                border: const OutlineInputBorder(),
-                prefixIcon: const Icon(Icons.search),
-              ),
-              onChanged: _onChanged,
-              onSubmitted: _submit,
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: scheme.surfaceContainerLowest,
+        foregroundColor: scheme.onSurface,
+        titleSpacing: 0,
+        title: TextField(
+          controller: _controller,
+          focusNode: _focusNode,
+          autofocus: true,
+          textInputAction: TextInputAction.search,
+          decoration: InputDecoration(
+            hintText: localizations.enterTitleAuthorOrTags,
+            border: InputBorder.none,
+          ),
+          onChanged: _onChanged,
+          onSubmitted: _submit,
+        ),
+        actions: [
+          if (_controller.text.isNotEmpty)
+            IconButton(
+              tooltip: localizations.clearSearch,
+              icon: const Icon(Icons.close_rounded),
+              onPressed: () {
+                _controller.clear();
+                setState(() => _suggestions = const []);
+              },
             ),
-            if (_loading)
-              const Padding(
-                padding: EdgeInsets.only(top: 8),
-                child: LinearProgressIndicator(),
-              ),
-            if (_suggestions.isNotEmpty)
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 260),
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  padding: const EdgeInsets.only(top: 8),
-                  itemCount: _suggestions.length,
-                  itemBuilder: (context, index) {
-                    final suggestion = _suggestions[index];
-                    return ListTile(
-                      dense: true,
-                      leading: Icon(_iconFor(suggestion.type)),
-                      title: Text(
-                        suggestion.value,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      subtitle: Text(_labelFor(suggestion.type, localizations)),
-                      onTap: () => _submit(suggestion.value),
-                    );
-                  },
-                ),
-              ),
-          ],
-        ),
+        ],
+        bottom:
+            _loading
+                ? const PreferredSize(
+                  preferredSize: Size.fromHeight(2),
+                  child: LinearProgressIndicator(minHeight: 2),
+                )
+                : null,
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(localizations.cancel),
-        ),
-        AppDialogButton(
-          onPressed: () => _submit(_controller.text),
-          label: localizations.search,
-        ),
-      ],
+      body: ListView.builder(
+        itemCount: _suggestions.length,
+        itemBuilder: (context, index) {
+          final suggestion = _suggestions[index];
+          return ListTile(
+            leading: Icon(_iconFor(suggestion.type)),
+            title: Text(
+              suggestion.value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            subtitle: Text(_labelFor(suggestion.type, localizations)),
+            onTap: () => _submit(suggestion.value, _scopeFor(suggestion.type)),
+          );
+        },
+      ),
     );
   }
 }

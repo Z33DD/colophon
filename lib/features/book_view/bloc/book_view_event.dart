@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:calibre_web_companion/features/book_view/data/models/library_filter.dart';
 import 'package:equatable/equatable.dart';
 
 abstract class BookViewEvent extends Equatable {
@@ -34,10 +35,24 @@ class ChangeSort extends BookViewEvent {
 class SearchBooks extends BookViewEvent {
   final String? query;
 
-  const SearchBooks(this.query);
+  /// Narrows results to one field when a typed suggestion was picked.
+  final SearchScope scope;
+
+  const SearchBooks(this.query, {this.scope = SearchScope.any});
 
   @override
-  List<Object?> get props => [query];
+  List<Object?> get props => [query, scope];
+}
+
+/// Show one slice of the library. Clears any search, because Calibre-Web
+/// cannot search within its filtered lists.
+class SetLibraryFilter extends BookViewEvent {
+  final LibraryFilter filter;
+
+  const SetLibraryFilter(this.filter);
+
+  @override
+  List<Object?> get props => [filter];
 }
 
 class UploadBook extends BookViewEvent {

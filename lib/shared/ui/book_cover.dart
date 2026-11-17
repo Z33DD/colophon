@@ -119,33 +119,42 @@ class TitleCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
+    // Text drawn on a cover is part of the picture: cap its scaling. The
+    // label under the cover carries the fully scaled title.
+    final scaler = MediaQuery.textScalerOf(context).clamp(maxScaleFactor: 1.2);
     return ColoredBox(
       color: scheme.primaryContainer,
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              author,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: text.labelSmall?.copyWith(
-                color: scheme.onPrimaryContainer,
+      child: ClipRect(
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                author,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textScaler: scaler,
+                style: text.labelSmall?.copyWith(
+                  color: scheme.onPrimaryContainer,
+                ),
               ),
-            ),
-            Text(
-              title,
-              maxLines: 4,
-              overflow: TextOverflow.ellipsis,
-              style: text.titleSmall?.copyWith(
-                color: scheme.onPrimaryContainer,
-                fontWeight: FontWeight.w600,
-                height: 1.1,
+              Flexible(
+                child: Text(
+                  title,
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                  textScaler: scaler,
+                  style: text.titleSmall?.copyWith(
+                    color: scheme.onPrimaryContainer,
+                    fontWeight: FontWeight.w600,
+                    height: 1.1,
+                  ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

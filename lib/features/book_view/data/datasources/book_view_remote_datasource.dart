@@ -7,6 +7,7 @@ import 'package:calibre_web_companion/core/services/server_capabilities.dart';
 import 'package:calibre_web_companion/core/utils/opds_entry_mapper.dart';
 import 'package:calibre_web_companion/core/utils/upload_file_name.dart';
 import 'package:calibre_web_companion/features/book_view/data/models/book_view_model.dart';
+import 'package:calibre_web_companion/features/book_view/data/models/library_filter.dart';
 import 'package:logger/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -118,6 +119,45 @@ class BookViewRemoteDatasource {
     final rows = response['rows'];
     final total = response['total'];
     return rows is List && rows.isEmpty && total is int && offset < total;
+  }
+
+  /// One page of a filtered list (unread, read, a format) from the
+  /// server's OPDS feed. Pass the previous page's `next` link to continue.
+  Future<({List<BookViewModel> books, String? next})> fetchFilteredPage(
+    LibraryFilter filter, {
+    String? nextUrl,
+  }) async {
+    final baseUrl = _apiService.getBaseUrl();
+    var endpoint = nextUrl ?? filter.opdsPath!;
+    if (endpoint.startsWith(baseUrl)) {
+      endpoint = endpoint.substring(baseUrl.length);
+    }
+    final json = await _apiService.getXmlAsJson(
+      endpoint: endpoint,
+      authMethod: AuthMethod.auto,
+    );
+    final feed = json['feed'];
+    if (feed is! Map) return (books: const <BookViewModel>[], next: null);
+
+    final entries = feed['entry'];
+    final list =
+        entries == null ? const [] : (entries is List ? entries : [entries]);
+    final baseUri = Uri.tryParse(baseUrl);
+    final read = filter.impliedReadStatus;
+    final books = <BookViewModel>[
+      for (final entry in list)
+        if (mapOpdsEntry(entry, baseUri: baseUri) case final book?)
+          read == null ? book : book.copyWith(readStatus: read),
+    ];
+
+    String? next;
+    final links = feed['link'];
+    for (final link in links is List ? links : [links]) {
+      if (link is Map && (link['_rel'] ?? link['rel']) == 'next') {
+        next = (link['_href'] ?? link['href'])?.toString();
+      }
+    }
+    return (books: books, next: next);
   }
 
   Future<List<BookViewModel>> _fetchBooksOpds() async {

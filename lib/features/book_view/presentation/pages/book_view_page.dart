@@ -8,7 +8,8 @@ import 'package:calibre_web_companion/features/book_view/bloc/book_view_event.da
 import 'package:calibre_web_companion/features/book_view/bloc/book_view_state.dart';
 import 'package:calibre_web_companion/features/book_view/data/models/book_view_model.dart';
 import 'package:calibre_web_companion/features/book_view/presentation/pages/series_detail_page.dart';
-import 'package:calibre_web_companion/features/book_view/presentation/widgets/search_dialog.dart';
+import 'package:calibre_web_companion/features/book_view/presentation/widgets/library_grid.dart';
+import 'package:calibre_web_companion/features/book_view/presentation/widgets/library_header.dart';
 import 'package:calibre_web_companion/features/book_view/presentation/widgets/series_folder_card.dart';
 import 'package:calibre_web_companion/features/me/presentation/widgets/account_button.dart';
 import 'package:calibre_web_companion/features/offline/cubit/connectivity_cubit.dart';
@@ -16,9 +17,9 @@ import 'package:calibre_web_companion/features/offline/data/services/offline_bac
 import 'package:calibre_web_companion/features/scan_book/presentation/pages/scan_book_page.dart';
 import 'package:calibre_web_companion/features/scan_book/presentation/scan_flow.dart';
 import 'package:calibre_web_companion/l10n/app_localizations.dart';
+import 'package:calibre_web_companion/shared/ui/status_view.dart';
 import 'package:calibre_web_companion/shared/widgets/app_options_sheet.dart';
 import 'package:calibre_web_companion/shared/widgets/book_card_skeleton_widget.dart';
-import 'package:calibre_web_companion/shared/widgets/book_card_widget.dart';
 import 'package:calibre_web_companion/shared/widgets/book_list_tile_skeleton_widget.dart';
 import 'package:calibre_web_companion/shared/widgets/book_list_tile_widget.dart';
 import 'package:calibre_web_companion/shared/widgets/book_view_mode_selector.dart';
@@ -26,6 +27,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class BookViewPage extends StatefulWidget {
   const BookViewPage({super.key});
@@ -80,7 +82,7 @@ class _BookViewPageState extends State<BookViewPage> {
         }
 
         if (state.hasError) {
-          context.showSnackBar(state.errorMessage, isError: true);
+          // The error is shown inline by the body; no snackbar on top.
           context.read<ConnectivityCubit>().reportFailure();
         }
 
@@ -90,28 +92,25 @@ class _BookViewPageState extends State<BookViewPage> {
         }
       },
       builder: (context, state) {
-        final bool isSearching = (state.searchQuery ?? '').isNotEmpty;
+        final baseUrl =
+            GetIt.instance<SharedPreferences>().getString('base_url') ?? '';
         return Scaffold(
           appBar: AppBar(
-            titleSpacing: isSearching ? 8 : null,
-            title:
-                isSearching
-                    ? _buildActiveSearchBar(
-                      context,
-                      state.searchQuery!,
-                      localizations,
-                    )
-                    : Text(localizations.navLibrary),
+            toolbarHeight: 64,
+            title: LibraryTitle(server: Uri.tryParse(baseUrl)?.host ?? ''),
             actions: [
               if (state.multiLibrary) _buildLibrarySelector(context, state),
               const BookViewModeSelector(),
-              if (!state.isOpds)
-                _buildSortOptions(context, state, localizations),
-              if (!isSearching) _buildSearchButton(context, localizations),
               const AccountButton(),
             ],
+            bottom: state.isOpds ? null : LibrarySearchField(state: state),
           ),
-          body: _buildBody(context, state, localizations),
+          body: Column(
+            children: [
+              if (!state.isOpds) LibraryFilterBar(state: state),
+              Expanded(child: _buildBody(context, state, localizations)),
+            ],
+          ),
           floatingActionButton:
               state.canAddBooks
                   ? FloatingActionButton(
@@ -140,30 +139,40 @@ class _BookViewPageState extends State<BookViewPage> {
     }
 
     if (state.books.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.menu_book_outlined,
-              size: 64,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              localizations.noBooksFound,
-              style: Theme.of(context).textTheme.titleLarge,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.refresh),
-              label: Text(localizations.books),
-              onPressed: () {
-                context.read<BookViewBloc>().add(const LoadBooks());
-              },
-            ),
-          ],
+      final bloc = context.read<BookViewBloc>();
+      final narrowed = (state.searchQuery ?? '').isNotEmpty;
+      final Widget status;
+      if (state.hasError) {
+        status = StatusView.error(
+          title: localizations.libraryLoadErrorTitle,
+          message: localizations.libraryLoadErrorMessage,
+          actionLabel: localizations.retry,
+          onAction: () => bloc.add(const RefreshBooks()),
+        );
+      } else if (narrowed) {
+        status = StatusView.empty(
+          icon: Icons.search_off_rounded,
+          title: localizations.libraryNoResultsTitle,
+          message: localizations.libraryNoResultsMessage,
+          actionLabel: localizations.clearSearch,
+          onAction: () => bloc.add(const SearchBooks('')),
+        );
+      } else {
+        status = StatusView.empty(
+          icon: Icons.auto_stories_outlined,
+          title: localizations.libraryEmptyTitle,
+          message: localizations.libraryEmptyMessage,
+        );
+      }
+      // Scrollable so pull-to-refresh still works on an empty library.
+      return RefreshIndicator(
+        onRefresh: () async => bloc.add(const RefreshBooks()),
+        child: LayoutBuilder(
+          builder:
+              (context, box) => SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: SizedBox(height: box.maxHeight, child: status),
+              ),
         ),
       );
     }
@@ -196,70 +205,27 @@ class _BookViewPageState extends State<BookViewPage> {
                   final book = state.books[index];
                   return BookListTile(
                     book: book,
-                    onTap: () async {
-                      final changed = await Navigator.of(context).push<bool>(
-                        AppRoute.page(
-                          BookDetailsPage(
-                            bookViewModel: book,
-                            bookUuid: book.uuid,
-                          ),
-                        ),
-                      );
-
-                      if (!context.mounted) return;
-
-                      if (changed == true) {
-                        context.read<BookViewBloc>().add(const RefreshBooks());
-                      }
-                    },
+                    onTap: () => _openBook(context, book),
                   );
                 },
               )
-              : GridView.builder(
+              : LibraryGrid(
                 controller: _scrollController,
-                padding: const EdgeInsets.all(16.0),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: state.columnCount,
-                  childAspectRatio: state.columnCount <= 2 ? 0.7 : 0.9,
-                  crossAxisSpacing: 16.0,
-                  mainAxisSpacing: 16.0,
-                ),
-                itemCount:
-                    state.hasMoreBooks
-                        ? state.books.length + 1
-                        : state.books.length,
-                itemBuilder: (context, index) {
-                  if (index == state.books.length) {
-                    return const BookCardSkeleton();
-                  }
-                  final book = state.books[index];
-                  return BookCard(
-                    bookId: book.id.toString(),
-                    title: book.title,
-                    authors: book.authors,
-                    coverUrl: book.coverUrl,
-                    readStatus: book.readStatus,
-                    topLeftBadge: book.seriesBadge,
-                    onTap: () async {
-                      final changed = await Navigator.of(context).push<bool>(
-                        AppRoute.page(
-                          BookDetailsPage(
-                            bookViewModel: book,
-                            bookUuid: book.uuid,
-                          ),
-                        ),
-                      );
-
-                      if (!context.mounted) return;
-
-                      if (changed == true) {
-                        context.read<BookViewBloc>().add(const RefreshBooks());
-                      }
-                    },
-                  );
-                },
+                books: state.books,
+                columnSetting: state.columnCount,
+                showLoadingTail: state.hasMoreBooks,
+                onOpen: (book) => _openBook(context, book),
               ),
     );
+  }
+
+  Future<void> _openBook(BuildContext context, BookViewModel book) async {
+    final changed = await Navigator.of(context).push<bool>(
+      AppRoute.page(BookDetailsPage(bookViewModel: book, bookUuid: book.uuid)),
+    );
+    if (changed == true && context.mounted) {
+      context.read<BookViewBloc>().add(const RefreshBooks());
+    }
   }
 
   Widget _buildBookListSkeletons(BuildContext context) {
@@ -273,20 +239,16 @@ class _BookViewPageState extends State<BookViewPage> {
   }
 
   Widget _buildBookGridSkeletons(BookViewState state) {
-    final aspectRatio = state.columnCount <= 2 ? 0.7 : 0.9;
-
     return GridView.builder(
-      padding: const EdgeInsets.all(16.0),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: state.columnCount,
-        childAspectRatio: aspectRatio,
-        crossAxisSpacing: 16.0,
-        mainAxisSpacing: 16.0,
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
+      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: coverExtentFor(state.columnCount),
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 16,
+        childAspectRatio: 0.55,
       ),
-      itemCount: 10,
-      itemBuilder: (context, index) {
-        return const BookCardSkeleton();
-      },
+      itemCount: 12,
+      itemBuilder: (context, index) => const BookCardSkeleton(),
     );
   }
 
@@ -398,73 +360,6 @@ class _BookViewPageState extends State<BookViewPage> {
     );
   }
 
-  Widget _buildSortOptions(
-    BuildContext context,
-    BookViewState state,
-    AppLocalizations localizations,
-  ) {
-    return PopupMenuButton<String>(
-      icon: const Icon(Icons.sort),
-      tooltip: localizations.sorting,
-      onSelected: (String value) {
-        if (value == 'series:folders') {
-          context.read<BookViewBloc>().add(const EnterSeriesFolderMode());
-          return;
-        }
-        final sortParts = value.split(':');
-        if (sortParts.length == 2) {
-          context.read<BookViewBloc>().add(
-            ChangeSort(sortBy: sortParts[0], sortOrder: sortParts[1]),
-          );
-        }
-      },
-      itemBuilder:
-          (BuildContext context) => [
-            PopupMenuItem(
-              value: 'title:asc',
-              child: Text(localizations.titleAZ),
-            ),
-            PopupMenuItem(
-              value: 'title:desc',
-              child: Text(localizations.titleZA),
-            ),
-            PopupMenuItem(
-              value: 'authors:asc',
-              child: Text(localizations.authorAZ),
-            ),
-            PopupMenuItem(
-              value: 'authors:desc',
-              child: Text(localizations.authorZA),
-            ),
-            PopupMenuItem(
-              value: 'added:desc',
-              child: Text(localizations.newestFirst),
-            ),
-            if (state.canBrowseSeriesFolders)
-              PopupMenuItem(
-                value: 'series:folders',
-                child: Row(
-                  children: [
-                    const Icon(Icons.folder_rounded, size: 20),
-                    const SizedBox(width: 12),
-                    Text(localizations.series),
-                  ],
-                ),
-              )
-            else ...[
-              PopupMenuItem(
-                value: 'series:asc',
-                child: Text(localizations.seriesAZ),
-              ),
-              PopupMenuItem(
-                value: 'series:desc',
-                child: Text(localizations.seriesZA),
-              ),
-            ],
-          ],
-    );
-  }
-
   void _showAddBookOptions(
     BuildContext context,
     AppLocalizations localizations,
@@ -516,75 +411,6 @@ class _BookViewPageState extends State<BookViewPage> {
     if (added && context.mounted) {
       context.read<BookViewBloc>().add(const RefreshBooks());
     }
-  }
-
-  Widget _buildSearchButton(
-    BuildContext context,
-    AppLocalizations localizations,
-  ) {
-    return IconButton(
-      icon: const Icon(Icons.search),
-      tooltip: localizations.search,
-      onPressed: () => _openSearchDialog(context),
-    );
-  }
-
-  Future<void> _openSearchDialog(
-    BuildContext context, {
-    String? initialQuery,
-  }) async {
-    final searchQuery = await showDialog<String>(
-      context: context,
-      builder: (context) => SearchDialog(initialQuery: initialQuery),
-    );
-    if (searchQuery != null && context.mounted) {
-      context.read<BookViewBloc>().add(SearchBooks(searchQuery));
-    }
-  }
-
-  Widget _buildActiveSearchBar(
-    BuildContext context,
-    String query,
-    AppLocalizations localizations,
-  ) {
-    final scheme = Theme.of(context).colorScheme;
-    return Material(
-      color: scheme.secondaryContainer,
-      borderRadius: BorderRadius.circular(12),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => _openSearchDialog(context, initialQuery: query),
-        child: Padding(
-          padding: const EdgeInsets.only(left: 12),
-          child: Row(
-            children: [
-              Icon(Icons.search, color: scheme.onSecondaryContainer),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  query,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: scheme.onSecondaryContainer,
-                  ),
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.close_rounded),
-                color: scheme.onSecondaryContainer,
-                tooltip: localizations.clearSearch,
-                onPressed: () => _clearSearch(context),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _clearSearch(BuildContext context) {
-    context.read<BookViewBloc>().add(const SearchBooks(''));
   }
 
   Future<void> _pickAndUploadBook(

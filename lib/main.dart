@@ -334,12 +334,11 @@ class _MyAppState extends State<MyApp> {
         context.read<HomePageBloc>().add(
           const SelectDestination(AppDestination.library),
         );
-        final query = await showDialog<String>(
-          context: context,
-          builder: (_) => const SearchDialog(),
-        );
-        if (query != null && context.mounted) {
-          context.read<BookViewBloc>().add(SearchBooks(query));
+        final search = await SearchDialog.open(context);
+        if (search != null && context.mounted) {
+          context.read<BookViewBloc>().add(
+            SearchBooks(search.query, scope: search.scope),
+          );
         }
       case 'scan':
         final added = await navigator.push<bool>(

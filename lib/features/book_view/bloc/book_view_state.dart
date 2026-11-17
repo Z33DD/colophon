@@ -1,4 +1,5 @@
 import 'package:calibre_web_companion/features/book_view/data/models/book_view_model.dart';
+import 'package:calibre_web_companion/features/book_view/data/models/library_filter.dart';
 import 'package:equatable/equatable.dart';
 
 enum UploadStatus { initial, loading, uploading, success, failed }
@@ -26,6 +27,18 @@ class BookViewState extends Equatable {
   final Map<String, String> libraries;
   final String? currentLibraryId;
 
+  /// Active slice of the library (All, Unread, Read, a format).
+  final LibraryFilter filter;
+
+  /// Next OPDS page while a filter is active; null when there is none.
+  final String? filterNextUrl;
+
+  /// Field the current search term must match (typed suggestion).
+  final SearchScope searchScope;
+
+  /// The server can serve filtered lists (Calibre-Web and its forks).
+  final bool canFilter;
+
   const BookViewState({
     this.books = const [],
     this.isLoading = false,
@@ -48,6 +61,10 @@ class BookViewState extends Equatable {
     this.multiLibrary = false,
     this.libraries = const {},
     this.currentLibraryId,
+    this.filter = LibraryFilter.all,
+    this.filterNextUrl,
+    this.searchScope = SearchScope.any,
+    this.canFilter = false,
   });
 
   BookViewState copyWith({
@@ -72,6 +89,10 @@ class BookViewState extends Equatable {
     bool? multiLibrary,
     Map<String, String>? libraries,
     String? currentLibraryId,
+    LibraryFilter? filter,
+    String? Function()? filterNextUrl,
+    SearchScope? searchScope,
+    bool? canFilter,
   }) {
     return BookViewState(
       books: books ?? this.books,
@@ -96,6 +117,12 @@ class BookViewState extends Equatable {
       multiLibrary: multiLibrary ?? this.multiLibrary,
       libraries: libraries ?? this.libraries,
       currentLibraryId: currentLibraryId ?? this.currentLibraryId,
+      filter: filter ?? this.filter,
+      // A function so callers can set it back to null.
+      filterNextUrl:
+          filterNextUrl != null ? filterNextUrl() : this.filterNextUrl,
+      searchScope: searchScope ?? this.searchScope,
+      canFilter: canFilter ?? this.canFilter,
     );
   }
 
@@ -122,5 +149,9 @@ class BookViewState extends Equatable {
     multiLibrary,
     libraries,
     currentLibraryId,
+    filter,
+    filterNextUrl,
+    searchScope,
+    canFilter,
   ];
 }

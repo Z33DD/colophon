@@ -1,5 +1,7 @@
 import 'package:calibre_web_companion/features/book_view/bloc/book_view_event.dart';
 import 'package:calibre_web_companion/features/book_view/bloc/book_view_state.dart';
+import 'package:calibre_web_companion/features/book_view/data/models/book_view_model.dart';
+import 'package:calibre_web_companion/features/book_view/data/models/library_filter.dart';
 import 'package:calibre_web_companion/features/book_view/data/repositories/book_view_repository.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:logger/logger.dart';
@@ -25,6 +27,7 @@ class BookViewBloc extends Bloc<BookViewEvent, BookViewState> {
     on<UploadCancel>(_onUploadCancel);
     on<ResetUploadStatus>(_onResetUploadStatus);
     on<ChangeLibrary>(_onChangeLibrary);
+    on<SetLibraryFilter>(_onSetLibraryFilter);
   }
 
   Future<void> _onLoadSettings(
@@ -43,6 +46,8 @@ class BookViewBloc extends Bloc<BookViewEvent, BookViewState> {
           canAddBooks: caps.addBooks,
           canLookupMetadata: caps.metadataLookup,
           canBrowseSeriesFolders: caps.discover,
+          // Filters use the OPDS lists that come with discover support.
+          canFilter: caps.discover,
           multiLibrary: caps.multiLibrary && libraries.length > 1,
           libraries: libraries,
           currentLibraryId: repository.getCurrentLibraryId(),
@@ -58,6 +63,7 @@ class BookViewBloc extends Bloc<BookViewEvent, BookViewState> {
     Emitter<BookViewState> emit,
   ) async {
     emit(state.copyWith(isLoading: true, hasError: false));
+    if (!state.filter.isAll) return _loadFiltered(emit, reset: true);
     try {
       final isOpds = repository.getIsOpds();
       final caps = repository.getCapabilities();
@@ -74,7 +80,7 @@ class BookViewBloc extends Bloc<BookViewEvent, BookViewState> {
       emit(
         state.copyWith(
           isLoading: false,
-          books: books,
+          books: _scoped(books),
           offset: limit,
           hasMoreBooks:
               state.seriesFolderMode
@@ -102,6 +108,7 @@ class BookViewBloc extends Bloc<BookViewEvent, BookViewState> {
     if (state.isLoading || !state.hasMoreBooks) return;
 
     emit(state.copyWith(isLoading: true));
+    if (!state.filter.isAll) return _loadFiltered(emit, reset: false);
 
     try {
       final moreBooks = await repository.fetchBooks(
@@ -112,7 +119,7 @@ class BookViewBloc extends Bloc<BookViewEvent, BookViewState> {
         sortOrder: state.sortOrder,
       );
 
-      final allBooks = [...state.books, ...moreBooks];
+      final allBooks = [...state.books, ..._scoped(moreBooks)];
 
       emit(
         state.copyWith(
@@ -198,6 +205,10 @@ class BookViewBloc extends Bloc<BookViewEvent, BookViewState> {
     emit(
       state.copyWith(
         searchQuery: event.query,
+        searchScope: event.scope,
+        // Filtered OPDS lists can't be searched: searching shows All.
+        filter: LibraryFilter.all,
+        filterNextUrl: () => null,
         seriesFolderMode: false,
         offset: 0,
         books: [],
@@ -206,6 +217,67 @@ class BookViewBloc extends Bloc<BookViewEvent, BookViewState> {
     );
 
     add(const LoadBooks());
+  }
+
+  Future<void> _onSetLibraryFilter(
+    SetLibraryFilter event,
+    Emitter<BookViewState> emit,
+  ) async {
+    emit(
+      state.copyWith(
+        filter: event.filter,
+        filterNextUrl: () => null,
+        searchQuery: '',
+        searchScope: SearchScope.any,
+        seriesFolderMode: false,
+        offset: 0,
+        books: [],
+        hasMoreBooks: true,
+        hasError: false,
+      ),
+    );
+    add(const LoadBooks());
+  }
+
+  /// Loads the first ([reset]) or next page of the active filter.
+  Future<void> _loadFiltered(
+    Emitter<BookViewState> emit, {
+    required bool reset,
+  }) async {
+    try {
+      final page = await repository.fetchFilteredPage(
+        state.filter,
+        nextUrl: reset ? null : state.filterNextUrl,
+      );
+      emit(
+        state.copyWith(
+          isLoading: false,
+          books: reset ? page.books : [...state.books, ...page.books],
+          filterNextUrl: () => page.next,
+          hasMoreBooks: page.next != null,
+          isOpds: repository.getIsOpds(),
+        ),
+      );
+    } catch (e) {
+      logger.e('Error loading filtered books: $e');
+      emit(
+        state.copyWith(
+          isLoading: false,
+          hasError: true,
+          errorMessage: e.toString(),
+        ),
+      );
+    }
+  }
+
+  /// Applies a typed suggestion's scope to a page from the server's
+  /// free-text search.
+  List<BookViewModel> _scoped(List<BookViewModel> books) {
+    final term = state.searchQuery ?? '';
+    if (state.searchScope == SearchScope.any || term.isEmpty) return books;
+    return books
+        .where((b) => matchesScope(b, state.searchScope, term))
+        .toList();
   }
 
   Future<void> _onUploadBook(

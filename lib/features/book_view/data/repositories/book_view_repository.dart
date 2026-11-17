@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:calibre_web_companion/core/services/server_capabilities.dart';
 import 'package:calibre_web_companion/features/book_view/data/datasources/book_view_remote_datasource.dart';
 import 'package:calibre_web_companion/features/book_view/data/models/book_view_model.dart';
+import 'package:calibre_web_companion/features/book_view/data/models/library_filter.dart';
 import 'package:logger/logger.dart';
 
 class BookViewRepository {
@@ -10,6 +11,11 @@ class BookViewRepository {
   final Logger logger;
 
   BookViewRepository({required this.datasource, required this.logger});
+
+  Future<({List<BookViewModel> books, String? next})> fetchFilteredPage(
+    LibraryFilter filter, {
+    String? nextUrl,
+  }) => datasource.fetchFilteredPage(filter, nextUrl: nextUrl);
 
   Future<List<BookViewModel>> fetchBooks({
     required int offset,
