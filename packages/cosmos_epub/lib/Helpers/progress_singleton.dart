@@ -1,3 +1,5 @@
+import 'package:cosmos_epub/Helpers/page_layout.dart';
+import 'package:cosmos_epub/Helpers/reader_position.dart';
 import 'package:cosmos_epub/Model/book_progress_model.dart';
 import 'package:get_storage/get_storage.dart';
 
@@ -11,37 +13,51 @@ class BookProgressSingleton {
 
   String _key(String bookId) => 'progress_$bookId';
 
-  BookProgressModel getBookProgress(String bookId) {
+  /// The stored position, migrating legacy `{chapter, page}` records.
+  ReaderPosition getPosition(String bookId) {
     try {
-      final raw = _box.read(_key(bookId));
-      if (raw is Map) {
-        return BookProgressModel(
-          bookId: bookId,
-          currentChapterIndex: (raw['chapter'] as num?)?.toInt() ?? 0,
-          currentPageIndex: (raw['page'] as num?)?.toInt() ?? 0,
-        );
-      }
-    } catch (_) {}
+      return ReaderPosition.fromStored(_box.read(_key(bookId)));
+    } catch (_) {
+      return const ReaderPosition(chapter: 0);
+    }
+  }
+
+  BookProgressModel getBookProgress(String bookId) {
+    final position = getPosition(bookId);
     return BookProgressModel(
       bookId: bookId,
-      currentChapterIndex: 0,
-      currentPageIndex: 0,
+      currentChapterIndex: position.chapter,
+      currentPageIndex: position.page,
+      chapterFraction: position.fraction,
     );
   }
 
-  Future<bool> setCurrentChapterIndex(String bookId, int chapterIndex) {
-    final current = getBookProgress(bookId);
-    return _write(bookId, chapterIndex, current.currentPageIndex ?? 0);
+  /// Moves to [chapterIndex] and keeps the stored page target, which the
+  /// callers set first (0 for a chapter start, [openAtEnd] for its end).
+  Future<bool> setCurrentChapterIndex(String bookId, int chapterIndex) =>
+      _write(bookId, getPosition(bookId).copyWith(chapter: chapterIndex));
+
+  /// Sets an explicit page target and drops the fraction, so the page wins.
+  Future<bool> setCurrentPageIndex(String bookId, int pageIndex) =>
+      _write(bookId, getPosition(bookId).atPage(pageIndex));
+
+  /// Records the page on screen and its share of the chapter. This is the
+  /// save that survives a font or size change.
+  Future<bool> setPagePosition(String bookId, int pageIndex, int pageCount) {
+    final current = getPosition(bookId);
+    return _write(
+      bookId,
+      ReaderPosition.onPage(
+        chapter: current.chapter,
+        page: pageIndex,
+        pageCount: pageCount,
+      ),
+    );
   }
 
-  Future<bool> setCurrentPageIndex(String bookId, int pageIndex) {
-    final current = getBookProgress(bookId);
-    return _write(bookId, current.currentChapterIndex ?? 0, pageIndex);
-  }
-
-  Future<bool> _write(String bookId, int chapter, int page) async {
+  Future<bool> _write(String bookId, ReaderPosition position) async {
     try {
-      await _box.write(_key(bookId), {'chapter': chapter, 'page': page});
+      await _box.write(_key(bookId), position.toStored());
       return true;
     } catch (_) {
       return false;

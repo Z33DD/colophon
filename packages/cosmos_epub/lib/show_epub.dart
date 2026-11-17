@@ -664,8 +664,15 @@ class ShowEpubState extends State<ShowEpub> {
                                                   .getBookProgress(bookId)
                                                   .currentPageIndex ??
                                               0,
+                                          // A jump target wins; otherwise
+                                          // the saved share of the chapter,
+                                          // which survives font, size and
+                                          // theme changes that re-lay it out.
                                           starterPageFraction:
-                                              _startPageFraction,
+                                              _startPageFraction ??
+                                                  bookProgress
+                                                      .getBookProgress(bookId)
+                                                      .chapterFraction,
                                           style: TextStyle(
                                               fontSize: _fontSize.sp,
                                               fontFamily: selectedTextStyle,
@@ -712,11 +719,12 @@ class ShowEpubState extends State<ShowEpub> {
                                                   -1,
                                             );
 
-                                            // Save the page as is: saving the
-                                            // last page as 0 reopened books at
-                                            // the chapter start.
-                                            bookProgress.setCurrentPageIndex(
-                                                bookId, currentPage);
+                                            // Save the page and its share of
+                                            // the chapter. The page as is:
+                                            // saving the last page as 0
+                                            // reopened books at the start.
+                                            bookProgress.setPagePosition(
+                                                bookId, currentPage, totalPages);
 
                                             // Reset swipe counters when not on boundary pages
                                             if (currentPage != totalPages - 1) {
