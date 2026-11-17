@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:calibre_web_companion/core/services/snackbar.dart';
 import 'package:calibre_web_companion/features/download_service/bloc/download_service_bloc.dart';
 import 'package:calibre_web_companion/features/download_service/bloc/download_service_event.dart';
+import 'package:calibre_web_companion/features/download_service/bloc/download_service_state.dart';
 import 'package:calibre_web_companion/features/download_service/data/downloader_request_headers.dart';
 import 'package:calibre_web_companion/features/download_service/data/models/download_service_book_model.dart';
 import 'package:calibre_web_companion/features/download_service/data/models/download_service_status.dart';
@@ -47,96 +48,111 @@ class _BookCardWidgetState extends State<BookCardWidget> {
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
+    final id = widget.book.id;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16.0),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildBookCover(context),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.book.title,
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.bold),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 8),
-                        _buildInfoRow(
-                          context,
-                          Icons.person,
-                          widget.book.author,
-                          Theme.of(context).colorScheme.primary,
-                        ),
-                        const SizedBox(height: 4),
-                        _buildInfoRow(
-                          context,
-                          Icons.business,
-                          widget.book.publisher,
-                          Theme.of(context).colorScheme.secondary,
-                          textStyle: Theme.of(context).textTheme.bodySmall,
-                        ),
-                        const SizedBox(height: 4),
-                        if (widget.book.year != '') ...[
+    // Confirm only once the server accepted the request.
+    return BlocListener<DownloadServiceBloc, DownloadServiceState>(
+      listenWhen:
+          (previous, current) =>
+              widget.isSearchResult &&
+              !previous.queuedRequests.contains(id) &&
+              current.queuedRequests.contains(id),
+      listener:
+          (context, _) => context.showSnackBar(
+            localizations.requestQueuedMessage(widget.book.title),
+          ),
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 16.0),
+        elevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.0),
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildBookCover(context),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.book.title,
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 8),
                           _buildInfoRow(
                             context,
-                            Icons.calendar_today,
-                            widget.book.year.toString(),
+                            Icons.person,
+                            widget.book.author,
+                            Theme.of(context).colorScheme.primary,
+                          ),
+                          const SizedBox(height: 4),
+                          _buildInfoRow(
+                            context,
+                            Icons.business,
+                            widget.book.publisher,
                             Theme.of(context).colorScheme.secondary,
                             textStyle: Theme.of(context).textTheme.bodySmall,
                           ),
                           const SizedBox(height: 4),
+                          if (widget.book.year != '') ...[
+                            _buildInfoRow(
+                              context,
+                              Icons.calendar_today,
+                              widget.book.year.toString(),
+                              Theme.of(context).colorScheme.secondary,
+                              textStyle: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            const SizedBox(height: 4),
+                          ],
+                          _buildInfoBadges(context),
+                          if (!widget.isSearchResult &&
+                              widget.book.status !=
+                                  DownloaderStatus.notDownloaded) ...[
+                            const SizedBox(height: 8),
+                            _buildStatusIndicator(context, localizations),
+                          ],
                         ],
-                        _buildInfoBadges(context),
-                        if (!widget.isSearchResult &&
-                            widget.book.status !=
-                                DownloaderStatus.notDownloaded) ...[
-                          const SizedBox(height: 8),
-                          _buildStatusIndicator(context, localizations),
-                        ],
-                      ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (!widget.isSearchResult &&
+                  widget.book.status == DownloaderStatus.error &&
+                  widget.book.errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 8.0,
+                  ),
+                  child: Text(
+                    '${localizations.error}: ${widget.book.errorMessage}',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                      fontSize: 12,
                     ),
                   ),
                 ),
-              ],
-            ),
-            if (!widget.isSearchResult &&
-                widget.book.status == DownloaderStatus.error &&
-                widget.book.errorMessage != null)
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16.0,
-                  vertical: 8.0,
-                ),
-                child: Text(
-                  '${localizations.error}: ${widget.book.errorMessage}',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.error,
-                    fontSize: 12,
-                  ),
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: _buildActionButtons(context, localizations),
                 ),
               ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: _buildActionButtons(context, localizations),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -357,55 +373,44 @@ class _BookCardWidgetState extends State<BookCardWidget> {
     final state = context.watch<DownloadServiceBloc>().state;
 
     if (widget.isSearchResult) {
-      final bool isLoadingThisBook = state.isBookDownloading(widget.book.id);
+      final id = widget.book.id;
+      final busy = state.isBookDownloading(id);
+      final queued = state.queuedRequests.contains(id);
+      final failed = state.failedRequests.containsKey(id);
+      final scheme = Theme.of(context).colorScheme;
+      void request() =>
+          context.read<DownloadServiceBloc>().add(DownloadBook(widget.book));
 
-      buttons.add(
-        ElevatedButton(
-          onPressed:
-              isLoadingThisBook
-                  ? null
-                  : () async {
-                    context.read<DownloadServiceBloc>().add(
-                      DownloadBook(widget.book),
-                    );
-                    context.showSnackBar(
-                      localizations.addedBookToTheDownloadQueue,
-                      isError: false,
-                    );
-                  },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Theme.of(context).colorScheme.secondary,
-            foregroundColor: Theme.of(context).colorScheme.onSecondary,
+      if (failed) {
+        buttons.add(
+          Flexible(
+            child: Text(
+              localizations.requestFailed,
+              style: TextStyle(color: scheme.error),
+            ),
           ),
-          child:
-              isLoadingThisBook
-                  ? Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          color: Theme.of(context).colorScheme.onSecondary,
-                          strokeWidth: 2,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        localizations.loading,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSecondary,
-                        ),
-                      ),
-                    ],
-                  )
-                  : Text(
-                    localizations.download,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSecondary,
-                    ),
-                  ),
-        ),
+        );
+      }
+      buttons.add(
+        queued
+            ? FilledButton.tonalIcon(
+              onPressed: null,
+              icon: const Icon(Icons.check_rounded),
+              label: Text(localizations.requestQueued),
+            )
+            : FilledButton.icon(
+              onPressed: busy ? null : request,
+              icon:
+                  busy
+                      ? const SizedBox.square(
+                        dimension: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                      : Icon(failed ? Icons.refresh : Icons.download_rounded),
+              label: Text(
+                failed ? localizations.retry : localizations.download,
+              ),
+            ),
       );
     } else {
       switch (widget.book.status) {

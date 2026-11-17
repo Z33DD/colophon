@@ -135,41 +135,39 @@ class DownloadServiceBloc
     DownloadBook event,
     Emitter<DownloadServiceState> emit,
   ) async {
+    final id = event.book.id;
     emit(
       state.copyWith(
         downloadStatus: DownloadServiceStatus.loading,
-        downloadingBookId: event.book.id,
-        errorMessage: null,
+        downloadingBookId: id,
+        failedRequests: {...state.failedRequests}..remove(id),
       ),
     );
 
+    // Success and failure are recorded per book: the card shows "Queued"
+    // only after the server confirmed, and a failure stays on that card
+    // instead of replacing the whole list with an error.
+    String? failure;
     try {
-      final success = await repository.downloadBook(event.book);
-      if (success) {
-        emit(
-          state.copyWith(
-            downloadStatus: DownloadServiceStatus.loaded,
-            downloadingBookId: null,
-          ),
-        );
-
-        add(GetDownloadStatus());
-      } else {
-        emit(
-          state.copyWith(
-            downloadStatus: DownloadServiceStatus.error,
-            downloadingBookId: null,
-            errorMessage: 'Failed to download book',
-          ),
-        );
-      }
+      if (!await repository.downloadBook(event.book)) failure = 'rejected';
     } catch (e) {
       logger.e('Error in _onDownloadBook: $e');
+      failure = e.toString();
+    }
+
+    if (failure == null) {
+      emit(
+        state.copyWith(
+          downloadStatus: DownloadServiceStatus.loaded,
+          queuedRequests: {...state.queuedRequests, id},
+        ),
+      );
+      add(GetDownloadStatus());
+    } else {
       emit(
         state.copyWith(
           downloadStatus: DownloadServiceStatus.error,
-          downloadingBookId: null,
-          errorMessage: e.toString(),
+          failedRequests: {...state.failedRequests, id: failure},
         ),
       );
     }

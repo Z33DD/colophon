@@ -35,6 +35,7 @@ class DownloadsTabWidget extends StatelessWidget {
                     ),
                     IconButton(
                       icon: const Icon(Icons.refresh),
+                      tooltip: AppLocalizations.of(context)!.refresh,
                       onPressed:
                           () => context.read<DownloadServiceBloc>().add(
                             GetDownloadStatus(),

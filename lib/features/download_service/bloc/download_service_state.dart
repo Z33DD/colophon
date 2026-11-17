@@ -20,6 +20,13 @@ class DownloadServiceState extends Equatable {
   final DownloadConfigModel config;
   final DownloadFilterModel activeFilter;
 
+  /// Requests the server accepted in this session (book ids).
+  final Set<String> queuedRequests;
+
+  /// Requests that failed, with the reason, per book id. Kept apart from
+  /// [errorMessage] so one failed request doesn't replace the whole list.
+  final Map<String, String> failedRequests;
+
   const DownloadServiceState({
     this.searchStatus = DownloadServiceStatus.initial,
     this.downloadStatus = DownloadServiceStatus.initial,
@@ -32,6 +39,8 @@ class DownloadServiceState extends Equatable {
     this.activeTab = DownloadServiceTab.search,
     this.config = const DownloadConfigModel(),
     this.activeFilter = const DownloadFilterModel(),
+    this.queuedRequests = const {},
+    this.failedRequests = const {},
   });
 
   bool get isSearching => searchStatus == DownloadServiceStatus.loading;
@@ -52,6 +61,8 @@ class DownloadServiceState extends Equatable {
     DownloadServiceTab? activeTab,
     DownloadConfigModel? config,
     DownloadFilterModel? activeFilter,
+    Set<String>? queuedRequests,
+    Map<String, String>? failedRequests,
   }) {
     return DownloadServiceState(
       searchStatus: searchStatus ?? this.searchStatus,
@@ -65,6 +76,8 @@ class DownloadServiceState extends Equatable {
       activeTab: activeTab ?? this.activeTab,
       config: config ?? this.config,
       activeFilter: activeFilter ?? this.activeFilter,
+      queuedRequests: queuedRequests ?? this.queuedRequests,
+      failedRequests: failedRequests ?? this.failedRequests,
     );
   }
 
@@ -81,5 +94,7 @@ class DownloadServiceState extends Equatable {
     activeTab,
     config,
     activeFilter,
+    queuedRequests,
+    failedRequests,
   ];
 }

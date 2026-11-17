@@ -845,5 +845,15 @@
         "type": "String"
       }
     }
+  },
+  "requestQueued": "Queued",
+  "requestFailed": "The server didn't accept this request.",
+  "requestQueuedMessage": "{title} is in the download queue",
+  "@requestQueuedMessage": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
   }
 }
