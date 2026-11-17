@@ -1,9 +1,8 @@
 import 'dart:async';
 
 import 'package:calibre_web_companion/core/services/app_transition.dart';
-import 'package:calibre_web_companion/core/services/snackbar.dart';
 import 'package:calibre_web_companion/features/scan_book/data/datasources/isbn_remote_datasource.dart';
-import 'package:calibre_web_companion/features/scan_book/data/models/isbn_book.dart';
+import 'package:calibre_web_companion/features/scan_book/presentation/isbn_lookup_result.dart';
 import 'package:calibre_web_companion/features/scan_book/presentation/pages/isbn_sources_page.dart';
 import 'package:calibre_web_companion/features/scan_book/presentation/widgets/scan_result_sheet.dart';
 import 'package:calibre_web_companion/l10n/app_localizations.dart';
@@ -61,29 +60,33 @@ Future<bool> runIsbnLookupFlow(BuildContext context, String isbn) async {
 
   while (true) {
     if (!context.mounted) return false;
-    final book = await _lookupWithProgress(context, source, currentIsbn);
+    final result = await _lookupWithProgress(context, source, currentIsbn);
     if (!context.mounted) return false;
 
-    if (book != null) {
-      final downloaderConfigured = await isDownloaderConfigured();
-      if (!context.mounted) return false;
-      final added = await showScanResultSheet(
-        context,
-        book: book,
-        downloaderConfigured: downloaderConfigured,
-      );
-      return added == true;
+    switch (result) {
+      case IsbnLookupFound(:final book):
+        final downloaderConfigured = await isDownloaderConfigured();
+        if (!context.mounted) return false;
+        final added = await showScanResultSheet(
+          context,
+          book: book,
+          downloaderConfigured: downloaderConfigured,
+        );
+        return added == true;
+      case IsbnLookupFailed():
+        // One message with Retry; never also claim the ISBN does not exist.
+        if (!await _lookupFailedDialog(context)) return false;
+      case IsbnLookupNotFound():
+        final retryIsbn = await _notFoundDialog(context, currentIsbn);
+        if (retryIsbn == null || retryIsbn.isEmpty) return false;
+        currentIsbn = retryIsbn;
     }
-
-    final retryIsbn = await _notFoundDialog(context, currentIsbn);
-    if (retryIsbn == null || retryIsbn.isEmpty) return false;
-    currentIsbn = retryIsbn;
   }
 }
 
 enum _NotFoundAction { cancel, editIsbn, metadataSources }
 
-Future<IsbnBook?> _lookupWithProgress(
+Future<IsbnLookupResult> _lookupWithProgress(
   BuildContext context,
   IsbnRemoteDataSource source,
   String isbn,
@@ -116,22 +119,39 @@ Future<IsbnBook?> _lookupWithProgress(
     ),
   );
 
-  IsbnBook? book;
-  try {
-    book = await source.lookupByIsbn(isbn);
-  } catch (e) {
-    _logger.e('Manual ISBN lookup failed for $isbn: $e');
-    if (context.mounted) {
-      Navigator.of(context).pop();
-      context.showSnackBar(localizations.isbnLookupFailed, isError: true);
-    }
-    return null;
+  final result = await classifyIsbnLookup(source.lookupByIsbn, isbn);
+  if (result case IsbnLookupFailed(:final error)) {
+    _logger.e('Manual ISBN lookup failed for $isbn: $error');
   }
 
   if (context.mounted) {
     Navigator.of(context).pop();
   }
-  return book;
+  return result;
+}
+
+/// Returns true when the user wants to retry the same ISBN.
+Future<bool> _lookupFailedDialog(BuildContext context) async {
+  final localizations = AppLocalizations.of(context)!;
+  final retry = await showDialog<bool>(
+    context: context,
+    builder:
+        (dialogContext) => AlertDialog(
+          title: Text(localizations.isbnLookupFailed),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(localizations.cancel),
+            ),
+            AppDialogButton(
+              label: localizations.retry,
+              icon: Icons.refresh_rounded,
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+            ),
+          ],
+        ),
+  );
+  return retry == true;
 }
 
 Future<String?> _notFoundDialog(BuildContext context, String isbn) async {
