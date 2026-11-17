@@ -417,7 +417,7 @@
   "connectionError": "Connection error",
   "pleaseEnterWebDavUrl": "Please enter a valid WebDAV URL",
   "loginSuccessfull": "Login successful",
-  "enterUsernamePasswordForSSO": "Since Calibre Web Companion uses many OPDS endpoints to provide different features, and OPDS currently only works with username/password authentication, you need to provide your credentials, even when using SSO. We know that this goes against the purpose of SSO, but it is necessary for the app to function correctly. Hopefully, future versions will offer a better solution.",
+  "enterUsernamePasswordForSSO": "Since Colophon uses many OPDS endpoints to provide different features, and OPDS currently only works with username/password authentication, you need to provide your credentials, even when using SSO. We know that this goes against the purpose of SSO, but it is necessary for the app to function correctly. Hopefully, future versions will offer a better solution.",
   "credentialsRequiredForSSO": "Credentials required for SSO",
   "readerSettings": "Reader Settings",
   "scrollDirection": "Scroll Direction",
@@ -561,7 +561,7 @@
   "widgetActionExternalReader": "Open in external reader",
   "widgetActionOpenApp": "Just open the app",
   "widgetHowToAddTitle": "Add a widget",
-  "widgetHowToAddDescription": "Long-press your home screen, choose Widgets, then pick Calibre Web Companion.",
+  "widgetHowToAddDescription": "Long-press your home screen, choose Widgets, then pick Colophon.",
   "isbnMetadataSources": "ISBN metadata sources",
   "isbnMetadataSourcesSubtitle": "Catalogues used when scanning a book",
   "isbnMetadataSourcesDescription": "All enabled catalogues are queried at once and their results are merged. More sources means better coverage for regional editions.",
@@ -675,7 +675,7 @@
       }
     }
   },
-  "themeSourceCirculation": "Companion",
+  "themeSourceCirculation": "Colophon",
   "moreActions": "More actions",
   "stampReadOn": "Read {date}",
   "@stampReadOn": {
@@ -878,5 +878,7 @@
   "settingsBookSections": "Sections and their order",
   "settingsDiscoverHomeSections": "Home sections",
   "settingsDiscoverBrowseItems": "Browse items",
-  "invalidUrlInline": "Enter a full address starting with http:// or https://"
+  "invalidUrlInline": "Enter a full address starting with http:// or https://",
+  "aboutBasedOn": "Colophon is a fork of Calibre Web Companion by doen1el, released under the GNU GPL v3. Thanks to its author and contributors.",
+  "aboutOriginalProject": "Original project"
 }

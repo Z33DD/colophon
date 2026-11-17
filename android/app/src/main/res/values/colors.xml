@@ -4,4 +4,5 @@
     <color name="widget_tile_background">#FFE7E7E1</color>
     <color name="widget_text_primary">#FF1A1C18</color>
     <color name="widget_text_secondary">#FF44483D</color>
+	<color name="ic_launcher_background">#3E2A87</color>
 </resources>

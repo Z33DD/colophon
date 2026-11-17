@@ -433,7 +433,7 @@ class _MyAppState extends State<MyApp> {
                         : const ShimmerEffect(),
               ),
               child: MaterialApp(
-                title: 'Calibre-Web-Companion',
+                title: 'Colophon',
                 theme: lightTheme,
                 darkTheme: darkTheme,
                 themeMode: settingsState.themeMode,

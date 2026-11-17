@@ -1,57 +1,29 @@
-> [!CAUTION]
-> ‼️ Android will become a locked-down platform. Learn more: https://keepandroidopen.org/
-
 <p align="center">
-    <img src="docs/icon/icon.png" alt="App Icon" width="100" />
-    <br>
-    v2.3.11
+  <img src="docs/icon/icon.png" alt="Colophon icon" width="100" />
 </p>
 
-<p align="center">
-    <a href="https://github.com/doen1el/calibre-web-companion/releases">
-        <img src="https://img.shields.io/github/downloads/doen1el/calibre-web-companion/total?color=green&label=Downloads%20(GitHub)" alt="GitHub all releases">
-    </a>
-    <a href="https://f-droid.org/en/packages/de.doen1el.calibreWebCompanion/" >
-        <img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgithub.com%2Fkitswas%2Ffdroid-metrics-dashboard%2Fraw%2Frefs%2Fheads%2Fmain%2Fprocessed%2Ftotal%2Fde.doen1el.calibreWebCompanion.json&query=%24.total_downloads&logo=fdroid&label=Downloads%20(F-Droid)">
-    </a>
-    <a href="https://github.com/doen1el/calibre-web-companion/releases">
-        <img src="https://img.shields.io/github/v/release/doen1el/calibre-web-companion?color=green&label=download&sort=semver" alt="GitHub release (latest SemVer)">
-    </a>
-    <a href="https://github.com/doen1el/calibre-web-companion/actions?query=workflow%3ABuild+branch%3Adev">
-        <img src="https://img.shields.io/github/actions/workflow/status/doen1el/calibre-web-companion/main.yml?branch=dev" alt="GitHub Workflow Status">
-    </a>
-    <a href="https://hosted.weblate.org/engage/calibre-web-companion/">
-        <img src="https://hosted.weblate.org/widget/calibre-web-companion/svg-badge.svg" alt="Translation status" />
-    </a>
-    <a href="https://codeberg.org/doen1el/calibre-web-companion">
-        <img src="https://img.shields.io/badge/mirror-Codeberg-2185D0?logo=codeberg&logoColor=white" alt="Codeberg mirror">
-    </a>
-</p>
+# Colophon
 
-# Calibre Web Companion
+Colophon is an Android app for your self-hosted [Calibre-Web](https://github.com/janeczku/calibre-web) library and its forks ([Calibre-Web Automated](https://github.com/crocodilestick/Calibre-Web-Automated), [Calibre-Web-NextGen](https://github.com/new-usemame/Calibre-Web-NextGen), Grimmory), plus the Calibre content server and plain OPDS. Browse your collection as a wall of covers, see each book's state at a glance, and get from opening the app to reading in as few taps as possible.
 
-This is an unofficial companion application for [Calibre Web](https://github.com/janeczku/calibre-web) (which also works for [Calibre Web Automated](https://github.com/crocodilestick/Calibre-Web-Automated), [Calibre-Web-NextGen](https://github.com/new-usemame/Calibre-Web-NextGen), [Grimmory](https://github.com/grimmory-tools/grimmory), [Calibre 'Sharing over the net'](https://github.com/kovidgoyal/calibre) and other OPDS providers (beta)), that allows you to browse your book collection and download books directly to your device. You can also interact with your books by marking them as read, unread or bookmarked. It is also possible to send books directly to your e-reader (Kindle/Kobo) thanks to the great work of [BookDrop](https://github.com/eitan12345om/book-drop).
+> **Colophon is a fork of [Calibre Web Companion](https://github.com/doen1el/calibre-web-companion) by [doen1el](https://github.com/doen1el).** Nearly all of the server integration, reader, sync and offline work comes from that project. Colophon redesigns the interface and navigation on top of it. Thank you to its author and contributors. Like the original, Colophon is licensed under the [GNU GPL v3](LICENSE).
 
-The app is built with [Flutter](https://github.com/flutter/flutter) and uses **Material You**. It is currently available for **Android** only.
+It is an unofficial client and is not affiliated with the Calibre or Calibre-Web projects.
 
-## 📦 Installation
+## What Colophon changes
 
-<p align="left">
-    <a href="https://f-droid.org/en/packages/de.doen1el.calibreWebCompanion/">
-        <img src="https://f-droid.org/badge/get-it-on.png" alt="Get it on F-Droid" height="80">
-    </a>
-    <a href="https://play.google.com/store/apps/details?id=de.doen1el.calibreWebCompanion">
-        <img src="docs/badges/badge_play.png" alt="Get it on Google Play" height="80">
-    </a>
-    <a href="https://github.com/doen1el/calibre-web-companion/releases">
-        <img src="docs/badges/badge_github.png" alt="Get it on GitHub" height="80">
-    </a>
-    <a href="https://github.com/doen1el/calibre-web-companion/wiki/Installing-Calibre%E2%80%90Web%E2%80%90Companion-from-GitHub-using-Obtainium">
-        <img src="docs/badges/badge_obtainium.png" alt="Get it on Obtainium" height="80">
-    </a>
-</p>
+- **Navigation:** Library, Discover and On device (plus Requests for Shelfmark). Account and settings sit behind your avatar.
+- **Library:** a cover wall with state stamps (Read, On device), one-tap filters (Unread, Read, Format), visible sort, and search that understands authors, series and tags.
+- **Book details:** one main action (Read, or Download), labelled secondary actions, and everything else under More. Read and Archived are toggles that show the current state.
+- **Downloads:** progress on the button, an Open action when done, a download folder you choose once, and opening the copy already on your phone.
+- **Accessibility:** follows the system font size, screen-reader labels, 48dp targets, and an e-ink mode that renders pure black on white without motion.
+- **Look:** a new visual identity ("Circulation Desk"); wallpaper colours and custom colours stay available.
 
-## 💪 Features
+## Install
+
+Download the APK from [Releases](../../releases) and install it. Colophon has its own package id (`io.github.z33dd.colophon`), so it installs next to Calibre Web Companion.
+
+## Features
 
 - Connect to your Calibre-Web (Automated), Grimmory, Calibre and OPDS servers, including reverse proxy/SSO setups, custom HTTP headers and self-signed certificates.
 - Browse your whole library with smooth, fast navigation.
@@ -68,9 +40,9 @@ The app is built with [Flutter](https://github.com/flutter/flutter) and uses **M
 - Upload books to your Calibre‑Web server.
 - Sync your whole library or selected books for offline reading.
 - Check your collection statistics at a glance.
-- Make it yours: reorder or hide book actions, detail sections and Discover sections, choose a theme, enable e‑ink mode, and adjust the text size, available in 15 languages.
+- Make it yours: reorder or hide book actions, detail sections and Discover sections, choose a theme, enable e‑ink mode, and adjust the text size, available in 15 languages (new strings in English first).
 
-## 📖 Reading progress sync
+## Reading progress sync
 
 Stock Calibre-Web has no API for reading positions, so progress is synced through one of these:
 
@@ -82,39 +54,23 @@ Stock Calibre-Web has no API for reading positions, so progress is synced throug
 
 > **OPDS:** OPDS catalogs can be browsed, downloaded and read, but the protocol is read-only. To edit metadata, use shelves or sync read status with Calibre-Web (or a fork), log in with the *Calibre Web* server type instead of OPDS.
 
-## 🖼️ Impressions
+## Building
 
-<p align="center">
-    <img src="docs/feature_graphics/1.png" alt="InApp" width="32%"/>
-    <img src="docs/feature_graphics/2.png" alt="Share" width="32%" />
-    <img src="docs/feature_graphics/3.png" alt="OpenTracks" width="32%" />
-    <img src="docs/feature_graphics/4.png" alt="OpenTracks" width="32%" />
-    <img src="docs/feature_graphics/5.png" alt="OpenTracks" width="32%" />
-    <img src="docs/feature_graphics/6.png" alt="OpenTracks" width="32%" />
-</p>
+```sh
+flutter pub get
+flutter build apk --release
+```
 
-## 🌍 l10n
+Release signing reads `android/key.properties` (gitignored) or the `COLOPHON_KEYSTORE`, `COLOPHON_KEY_ALIAS`, `COLOPHON_STORE_PASSWORD` and `COLOPHON_KEY_PASSWORD` environment variables. Without them the release APK is left unsigned. The launcher icon is drawn in code: `flutter test tool/render_icon_test.dart && dart run flutter_launcher_icons && tool/monochrome_icons.sh`.
 
-You can help translate Calibre Web Companion on [Weblate](https://hosted.weblate.org/projects/calibre-web-companion/app/).
-
-<a href="https://hosted.weblate.org/engage/calibre-web-companion/">
-<img src="https://hosted.weblate.org/widget/calibre-web-companion/app/multi-auto.svg" alt="Translation status" />
-</a>
-
-## 🚀 Contributing
-
-You can of course open issues for bugs, feedback, and feature ideas. All suggestions are very welcome :)
-
-The source code is also mirrored on [Codeberg](https://codeberg.org/doen1el/calibre-web-companion). GitHub remains the primary repository, so please open issues and pull requests here.
-
-## 📜 Credits
+## Credits
 
 - [Calibre Web](https://github.com/janeczku/calibre-web)
 - [Calibre Web Automated](https://github.com/crocodilestick/Calibre-Web-Automated)
 - [shelfmark](https://github.com/calibrain/shelfmark)
 - [BookDrop](https://github.com/eitan12345om/book-drop)
 - [Flutter](https://github.com/flutter/flutter)
-- [IconKitchen](https://icon.kitchen)
 - [Weblate](https://hosted.weblate.org/)
 - [CosmosEpub](https://github.com/Mamasodikov/cosmos_epub)
 - [pdfx](https://github.com/ScerIO/packages.flutter/tree/main/packages/pdfx)
+- [Calibre Web Companion](https://github.com/doen1el/calibre-web-companion) by doen1el: the project Colophon is forked from.

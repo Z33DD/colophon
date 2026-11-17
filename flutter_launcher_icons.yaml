@@ -1,0 +1,12 @@
+# Colophon icon, rendered from code by tool/render_icon_test.dart.
+# Regenerate: flutter test tool/render_icon_test.dart && dart run flutter_launcher_icons
+# The monochrome (themed) layer is written by tool/monochrome_icons.sh,
+# because this plugin version has no monochrome support.
+flutter_icons:
+  android: 'ic_launcher'
+  ios: true
+  image_path: 'assets/icon/colophon_icon.png'
+  adaptive_icon_background: '#3E2A87'
+  adaptive_icon_foreground: 'assets/icon/colophon_foreground.png'
+  remove_alpha_ios: true
+  min_sdk_android: 21

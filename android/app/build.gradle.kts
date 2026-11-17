@@ -9,22 +9,26 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Release signing. Values come from android/key.properties when it exists
+// (gitignored), otherwise from environment variables, so the store and key
+// passwords can be injected at build time (e.g. read from macOS Keychain)
+// without ever being written to disk:
+//   COLOPHON_KEYSTORE, COLOPHON_KEY_ALIAS, COLOPHON_STORE_PASSWORD,
+//   COLOPHON_KEY_PASSWORD
 val keyProperties = Properties().apply {
-    // load your *.properties file
-    load(FileInputStream(File("key.properties")))
+    val file = File("key.properties")
+    if (file.exists()) load(FileInputStream(file))
 }
 
-// Get all properties from key.properties file
-val detKeyAlias = keyProperties.getProperty("keyAlias")
-val detKeyPassword = keyProperties.getProperty("keyPassword")
-val detStoreFile = keyProperties.getProperty("storeFile")
-val detStorePassword = keyProperties.getProperty("storePassword")
+fun signingValue(property: String, env: String): String? =
+    keyProperties.getProperty(property) ?: System.getenv(env)
 
-// Validate that required properties exist
-require(detKeyAlias != null) { "keyAlias not found in key.properties file." }
-require(detKeyPassword != null) { "keyPassword not found in key.properties file." }
-require(detStoreFile != null) { "storeFile not found in key.properties file." }
-require(detStorePassword != null) { "storePassword not found in key.properties file." }
+val detKeyAlias = signingValue("keyAlias", "COLOPHON_KEY_ALIAS")
+val detKeyPassword = signingValue("keyPassword", "COLOPHON_KEY_PASSWORD")
+val detStoreFile = signingValue("storeFile", "COLOPHON_KEYSTORE")
+val detStorePassword = signingValue("storePassword", "COLOPHON_STORE_PASSWORD")
+val hasReleaseSigning =
+    listOf(detKeyAlias, detKeyPassword, detStoreFile, detStorePassword).all { it != null }
 
 android {
     namespace = "de.doen1el.calibreWebCompanion"
@@ -37,13 +41,17 @@ android {
     }
 
     defaultConfig {
-        applicationId = "de.doen1el.calibreWebCompanion"
+        // Colophon is a fork of Calibre Web Companion with its own identity,
+        // so it installs next to the original. The Kotlin package
+        // (namespace) is unchanged: native code and widget providers are
+        // addressed by it, not by the application id.
+        applicationId = "io.github.z33dd.colophon"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode * 10 + 3
         versionName = flutter.versionName
 
-        manifestPlaceholders["appLabel"] = "Calibre Web Companion"
+        manifestPlaceholders["appLabel"] = "Colophon"
     }
 
     dependenciesInfo {
@@ -54,11 +62,13 @@ android {
     }
 
     signingConfigs {
-        create("release") {
-            keyAlias = detKeyAlias
-            keyPassword = detKeyPassword
-            storeFile = file(detStoreFile)
-            storePassword = detStorePassword
+        if (hasReleaseSigning) {
+            create("release") {
+                keyAlias = detKeyAlias
+                keyPassword = detKeyPassword
+                storeFile = file(detStoreFile!!)
+                storePassword = detStorePassword
+            }
         }
     }
 
@@ -68,7 +78,7 @@ android {
             // release app instead of replacing it.
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
-            manifestPlaceholders["appLabel"] = "CWC Debug"
+            manifestPlaceholders["appLabel"] = "Colophon Debug"
 
             isMinifyEnabled = true
             isShrinkResources = true
@@ -82,7 +92,14 @@ android {
         }
 
         getByName("release") {
-            signingConfig = signingConfigs.getByName("release")
+            // No signing values: the release APK stays unsigned (it won't
+            // install) instead of silently using the debug key. Debug builds
+            // are unaffected.
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            } else {
+                logger.warn("Colophon: release signing not configured; APK will be unsigned.")
+            }
 
             isMinifyEnabled = true
             isShrinkResources = true

@@ -32,6 +32,7 @@ import 'package:docman/docman.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 enum SettingsSubPage { discover, bookDetails }
 
@@ -289,6 +290,24 @@ class _SettingsPageState extends State<SettingsPage> {
                           _buildAppLogsButton(context, localizations),
                           _buildLicensesButton(context, state, localizations),
                           _buildVersionCard(context, state, localizations),
+                          // GPL-3.0 fork: credit the original project.
+                          SettingsGroup(
+                            children: [
+                              SettingsTile(
+                                icon: Icons.favorite_outline_rounded,
+                                title: localizations.aboutOriginalProject,
+                                subtitle: localizations.aboutBasedOn,
+                                trailing: const Icon(Icons.open_in_new_rounded),
+                                onTap:
+                                    () => launchUrl(
+                                      Uri.parse(
+                                        'https://github.com/doen1el/calibre-web-companion',
+                                      ),
+                                      mode: LaunchMode.externalApplication,
+                                    ),
+                              ),
+                            ],
+                          ),
                           const SizedBox(height: 24),
                         ],
                       ),
@@ -2069,7 +2088,7 @@ class _SettingsPageState extends State<SettingsPage> {
         onTap: () {
           showLicensePage(
             context: context,
-            applicationName: 'Calibre Web Companion',
+            applicationName: 'Colophon',
             applicationVersion:
                 "${state.appVersion ?? ''} (${state.buildNumber ?? ''})",
             applicationIcon: Padding(
