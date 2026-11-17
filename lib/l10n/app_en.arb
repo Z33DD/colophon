@@ -877,5 +877,6 @@
   "webDavUrlLabel": "WebDAV URL (e.g. Nextcloud)",
   "settingsBookSections": "Sections and their order",
   "settingsDiscoverHomeSections": "Home sections",
-  "settingsDiscoverBrowseItems": "Browse items"
+  "settingsDiscoverBrowseItems": "Browse items",
+  "invalidUrlInline": "Enter a full address starting with http:// or https://"
 }

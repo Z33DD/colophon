@@ -1,10 +1,23 @@
 import 'dart:async';
 
+import 'package:calibre_web_companion/l10n/app_localizations.dart';
 import 'package:calibre_web_companion/shared/utils/status_colors.dart';
 import 'package:flutter/material.dart';
 
 enum UrlFieldStatus { idle, checking, ok, authRequired, error }
 
+/// Whether [value] is a usable server address: http(s) with a host.
+bool isValidServerUrl(String value) {
+  final uri = Uri.tryParse(value.trim());
+  return uri != null &&
+      (uri.scheme == 'http' || uri.scheme == 'https') &&
+      uri.host.isNotEmpty;
+}
+
+/// URL field that checks reachability as you type.
+///
+/// [onChanged] only fires for well-formed addresses, so an invalid entry
+/// shows an inline error and the last valid value stays saved.
 class ReachableUrlField extends StatefulWidget {
   final TextEditingController controller;
   final String label;
@@ -55,12 +68,16 @@ class _ReachableUrlFieldState extends State<ReachableUrlField> {
   }
 
   void _onChanged(String value) {
-    widget.onChanged?.call(value);
     _debounce?.cancel();
     if (value.trim().isEmpty) {
       setState(() => _status = UrlFieldStatus.idle);
       return;
     }
+    if (!isValidServerUrl(value)) {
+      setState(() => _status = UrlFieldStatus.idle);
+      return;
+    }
+    widget.onChanged?.call(value);
     setState(() => _status = UrlFieldStatus.checking);
     _debounce = Timer(widget.debounce, () => _runCheck(value));
   }
@@ -108,6 +125,11 @@ class _ReachableUrlFieldState extends State<ReachableUrlField> {
       onChanged: _onChanged,
       keyboardType: TextInputType.url,
       decoration: InputDecoration(
+        errorText:
+            widget.controller.text.trim().isNotEmpty &&
+                    !isValidServerUrl(widget.controller.text)
+                ? AppLocalizations.of(context)!.invalidUrlInline
+                : null,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.0)),
         labelText: widget.label,
         hintText: widget.hint,
