@@ -1,3 +1,4 @@
+import 'package:calibre_web_companion/core/services/api_service.dart';
 import 'package:calibre_web_companion/core/services/app_transition.dart';
 import 'package:calibre_web_companion/core/services/snackbar.dart';
 import 'package:calibre_web_companion/features/book_view/bloc/book_view_bloc.dart';
@@ -8,6 +9,7 @@ import 'package:calibre_web_companion/features/homepage/presentation/pages/home_
 import 'package:calibre_web_companion/features/login/bloc/login_bloc.dart';
 import 'package:calibre_web_companion/features/login/bloc/login_event.dart';
 import 'package:calibre_web_companion/features/login/bloc/login_state.dart';
+import 'package:calibre_web_companion/features/login/data/session_snapshot.dart';
 import 'package:calibre_web_companion/features/login/presentation/pages/login_page.dart';
 import 'package:calibre_web_companion/features/me/bloc/me_bloc.dart';
 import 'package:calibre_web_companion/features/me/bloc/me_event.dart';
@@ -22,6 +24,7 @@ import 'package:calibre_web_companion/shared/widgets/app_dialog_button.dart';
 import 'package:calibre_web_companion/shared/widgets/long_button_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MePage extends StatelessWidget {
   const MePage({super.key});
@@ -319,7 +322,7 @@ class MePage extends StatelessWidget {
                     title: Text(localizations.addAnotherAccount),
                     onTap: () {
                       Navigator.pop(sheetContext);
-                      _performLogout(context);
+                      _addAccount(context);
                     },
                   ),
                   ListTile(
@@ -408,6 +411,30 @@ class MePage extends StatelessWidget {
             ],
           ),
     );
+  }
+
+  /// Opens the login screen for a second account without signing out of
+  /// the current one. Login writes credentials before it knows they work, so
+  /// the current session is snapshotted and restored unless a login succeeds.
+  Future<void> _addAccount(BuildContext context) async {
+    final prefs = getIt<SharedPreferences>();
+    final snapshot = SessionSnapshot.capture(prefs);
+    final loginBloc = context.read<LoginBloc>();
+
+    var succeeded = false;
+    final subscription = loginBloc.stream.listen((state) {
+      if (state.status == LoginStatus.success) succeeded = true;
+    });
+
+    await Navigator.of(
+      context,
+    ).push(AppTransitions.createSlideRoute(const LoginPage()));
+    await subscription.cancel();
+
+    if (succeeded) return;
+    await snapshot.restore(prefs);
+    await ApiService().initialize();
+    loginBloc.add(const ResetLoginStatus());
   }
 
   void _performLogout(BuildContext context) {
