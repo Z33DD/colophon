@@ -21,15 +21,14 @@ class SendToEreaderWidget extends StatelessWidget {
   final BookDetailsModel book;
   final bool isLoading;
 
-  /// With a builder, renders only the "Send to e-reader" action in the
-  /// caller's style, regardless of the legacy FAB settings.
-  final BarActionBuilder? builder;
+  /// Draws the "Send to e-reader" action in the caller's style.
+  final BarActionBuilder builder;
 
   const SendToEreaderWidget({
     super.key,
     required this.book,
     required this.isLoading,
-    this.builder,
+    required this.builder,
   });
 
   @override
@@ -40,122 +39,21 @@ class SendToEreaderWidget extends StatelessWidget {
       builder: (context, bookDetailsState) {
         return BlocBuilder<SettingsBloc, SettingsState>(
           builder: (context, settingsState) {
-            if (builder != null) {
-              return builder!(
-                context,
-                BarAction(
-                  icon: Icons.send_rounded,
-                  label: localizations.sendToEReader,
-                  onPressed:
-                      isLoading
-                          ? null
-                          : () =>
-                              _showSendToReaderDialog(context, localizations),
-                ),
-              );
-            }
-
-            final bool showFab = settingsState.showSendToEReaderButton;
-            final bool showReadNow = settingsState.showReadNowButton;
-
-            if (!showFab) {
-              return const SizedBox.shrink();
-            }
-
-            final bool isOpeningReader =
-                bookDetailsState.openInReaderState == OpenInReaderState.loading;
-
-            if (showReadNow) {
-              return FloatingActionButton.extended(
+            return builder(
+              context,
+              BarAction(
+                icon: Icons.send_rounded,
+                label: localizations.sendToEReader,
                 onPressed:
-                    (isLoading || isOpeningReader)
+                    isLoading
                         ? null
-                        : () => _handleReadNow(
-                          context,
-                          localizations,
-                          settingsState,
-                        ),
-                icon:
-                    isOpeningReader
-                        ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 3),
-                        )
-                        : const Icon(Icons.open_in_new_rounded),
-                label: Text(localizations.readNow),
-              );
-            }
-
-            return FloatingActionButton.extended(
-              onPressed:
-                  isLoading
-                      ? null
-                      : () => _showSendToReaderDialog(context, localizations),
-              icon: const Icon(Icons.send),
-              label: Text(localizations.sendToEReader),
+                        : () => _showSendToReaderDialog(context, localizations),
+              ),
             );
           },
         );
       },
     );
-  }
-
-  Future<void> _handleReadNow(
-    BuildContext context,
-    AppLocalizations localizations,
-    SettingsState settingsState,
-  ) async {
-    DocumentFile? selectedDirectory;
-
-    if (Platform.isAndroid) {
-      if (settingsState.storeReadNowAndSendToEReaderOnDevice &&
-          settingsState.defaultDownloadPath.isEmpty) {
-        if (context.mounted) {
-          context.showSnackBar(
-            localizations.pleaseSetDefaultDownloadFolderFirst,
-            isError: true,
-          );
-        }
-        return;
-      }
-
-      if (settingsState.defaultDownloadPath.isEmpty) {
-        selectedDirectory = await DocMan.pick.directory();
-        if (selectedDirectory == null) {
-          if (context.mounted) {
-            context.showSnackBar(
-              localizations.noFolderWasSelected,
-              isError: true,
-            );
-          }
-          return;
-        }
-      } else {
-        final uri = settingsState.defaultDownloadPath;
-        selectedDirectory =
-            uri.isNotEmpty ? await DocumentFile.fromUri(uri) : null;
-        if (selectedDirectory == null || !selectedDirectory.isDirectory) {
-          if (context.mounted) {
-            context.showSnackBar(
-              localizations.noFolderWasSelected,
-              isError: true,
-            );
-          }
-          return;
-        }
-      }
-    }
-
-    if (context.mounted) {
-      context.read<BookDetailsBloc>().add(
-        OpenBookInReader(
-          selectedDirectory: selectedDirectory,
-          schema: settingsState.downloadSchema,
-          pathTemplate: settingsState.downloadPathTemplate,
-        ),
-      );
-    }
   }
 
   void _showSendToReaderDialog(

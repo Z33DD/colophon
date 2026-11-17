@@ -8,6 +8,8 @@ class BarAction {
     required this.label,
     required this.onPressed,
     this.progress,
+    this.onCancel,
+    this.cancelLabel,
     this.isDestructive = false,
   });
 
@@ -20,6 +22,12 @@ class BarAction {
   /// Determinate progress 0..1 shown in place while the action runs
   /// (e.g. a download). Use a negative value for indeterminate.
   final double? progress;
+
+  /// While [progress] is set, tapping runs this (e.g. cancel the download).
+  final VoidCallback? onCancel;
+
+  /// Screen-reader label while running, e.g. "Cancel download".
+  final String? cancelLabel;
 
   /// Destructive actions only go in the overflow and are coloured as such.
   final bool isDestructive;
@@ -119,7 +127,7 @@ class PrimaryActionButton extends StatelessWidget {
     final busy = progress != null;
     return FilledButton.icon(
       style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
-      onPressed: busy ? null : action.onPressed,
+      onPressed: busy ? action.onCancel : action.onPressed,
       icon:
           busy
               ? SizedBox.square(
@@ -161,9 +169,11 @@ class ActionTile extends StatelessWidget {
             )
             : Icon(action.icon, color: scheme.primary);
 
+    final running = progress != null;
+    final onTap = running ? action.onCancel : action.onPressed;
     final child = InkWell(
       borderRadius: BorderRadius.circular(12),
-      onTap: progress != null ? null : action.onPressed,
+      onTap: onTap,
       child: ConstrainedBox(
         constraints: BoxConstraints(minHeight: 64, minWidth: compact ? 56 : 48),
         child: Padding(
@@ -188,13 +198,13 @@ class ActionTile extends StatelessWidget {
       ),
     );
 
-    final enabled = action.onPressed != null && progress == null;
+    final enabled = onTap != null;
     return Semantics(
       button: true,
       enabled: enabled,
-      label: action.label,
+      label: running ? (action.cancelLabel ?? action.label) : action.label,
       // Children are excluded, so the tap action is re-exposed here.
-      onTap: enabled ? action.onPressed : null,
+      onTap: onTap,
       excludeSemantics: true,
       child: compact ? Tooltip(message: action.label, child: child) : child,
     );

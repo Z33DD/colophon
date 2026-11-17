@@ -55,6 +55,7 @@ class BookDetailsRepository {
     DocumentFile? selectedDirectory,
     DownloadSchema schema, {
     required String pathTemplate,
+    String? format,
     Function(int)? progressCallback,
     Future<void> Function(String path)? onFileDownloaded,
   }) async {
@@ -64,6 +65,7 @@ class BookDetailsRepository {
         selectedDirectory,
         schema,
         pathTemplate: pathTemplate,
+        format: format,
         progressCallback: progressCallback,
         onFileDownloaded: onFileDownloaded,
       );

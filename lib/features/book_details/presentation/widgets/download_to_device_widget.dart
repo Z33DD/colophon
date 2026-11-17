@@ -1,18 +1,15 @@
-import 'dart:io';
-
 import 'package:calibre_web_companion/core/services/snackbar.dart';
 import 'package:calibre_web_companion/features/book_details/bloc/book_details_bloc.dart';
 import 'package:calibre_web_companion/features/book_details/bloc/book_details_event.dart';
 import 'package:calibre_web_companion/features/book_details/bloc/book_details_state.dart';
 import 'package:calibre_web_companion/features/book_details/data/models/book_details_model.dart';
+import 'package:calibre_web_companion/features/book_details/presentation/book_folder.dart';
 import 'package:calibre_web_companion/features/settings/bloc/settings_bloc.dart';
 import 'package:calibre_web_companion/l10n/app_localizations.dart';
 import 'package:calibre_web_companion/shared/ui/action_bar.dart';
 import 'package:calibre_web_companion/shared/widgets/app_options_sheet.dart';
-import 'package:docman/docman.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:open_file/open_file.dart';
 
 class DownloadToDeviceWidget extends StatelessWidget {
   final BookDetailsModel book;
@@ -32,7 +29,19 @@ class DownloadToDeviceWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
 
-    return BlocBuilder<BookDetailsBloc, BookDetailsState>(
+    return BlocConsumer<BookDetailsBloc, BookDetailsState>(
+      listenWhen:
+          (previous, current) =>
+              previous.downloadState != current.downloadState &&
+              (current.downloadState == DownloadState.success ||
+                  current.downloadState == DownloadState.failed),
+      listener:
+          (context, state) => reportDownloadResult(
+            context,
+            state,
+            book,
+            () => _showDownloadOptions(context, localizations, book),
+          ),
       buildWhen:
           (previous, current) =>
               previous.downloadState != current.downloadState ||
@@ -65,6 +74,9 @@ class DownloadToDeviceWidget extends StatelessWidget {
                           ? state.downloadProgress / 100
                           : -1)
                       : null,
+              onCancel:
+                  () => context.read<BookDetailsBloc>().add(CancelDownload()),
+              cancelLabel: localizations.cancelDownload,
             ),
           );
         }
@@ -168,83 +180,19 @@ class DownloadToDeviceWidget extends StatelessWidget {
     }
   }
 
-  void _downloadBook(
+  Future<void> _downloadBook(
     BuildContext context,
     AppLocalizations localizations,
     BookDetailsModel book,
     String format,
   ) async {
     final settingsState = context.read<SettingsBloc>().state;
-    DocumentFile? selectedDirectory;
+    final bloc = context.read<BookDetailsBloc>();
+    final target = await pickBookFolder(context);
+    if (!target.proceed) return;
 
-    if (Platform.isAndroid) {
-      if (settingsState.defaultDownloadPath.isEmpty) {
-        _showDownloadStatusSheet(
-          // ignore: use_build_context_synchronously
-          context,
-          localizations,
-          DownloadState.selectingDestination,
-          null,
-          0,
-          () {
-            Navigator.pop(context);
-          },
-        );
-
-        selectedDirectory = await DocMan.pick.directory();
-        if (selectedDirectory == null) {
-          // ignore: use_build_context_synchronously
-          Navigator.pop(context);
-
-          // ignore: use_build_context_synchronously
-          context.showSnackBar(
-            localizations.noFolderWasSelected,
-            isError: true,
-          );
-          return;
-        }
-      } else {
-        final uri = settingsState.defaultDownloadPath;
-        selectedDirectory =
-            uri.isNotEmpty ? await DocumentFile.fromUri(uri) : null;
-        if (selectedDirectory == null || !selectedDirectory.isDirectory) {
-          // ignore: use_build_context_synchronously
-          context.showSnackBar(
-            localizations.noFolderWasSelected,
-            isError: true,
-          );
-          return;
-        }
-
-        _showDownloadStatusSheet(
-          // ignore: use_build_context_synchronously
-          context,
-          localizations,
-          DownloadState.downloading,
-          null,
-          0,
-          () {
-            context.read<BookDetailsBloc>().add(CancelDownload());
-            Navigator.pop(context);
-          },
-        );
-      }
-    } else {
-      _showDownloadStatusSheet(
-        context,
-        localizations,
-        DownloadState.downloading,
-        null,
-        0,
-        () {
-          context.read<BookDetailsBloc>().add(CancelDownload());
-          Navigator.pop(context);
-        },
-      );
-    }
-
-    // ignore: use_build_context_synchronously
-    context.read<BookDetailsBloc>().add(
+    // Progress shows on the button; the result arrives as a snackbar.
+    bloc.add(
       DownloadBook(
         bookId: book.id.toString(),
         format: format,
@@ -252,258 +200,46 @@ class DownloadToDeviceWidget extends StatelessWidget {
         author: book.authors,
         series: book.series,
         seriesIndex: book.seriesIndex,
-        directory: selectedDirectory,
+        directory: target.folder,
         schema: settingsState.downloadSchema,
         pathTemplate: settingsState.downloadPathTemplate,
       ),
     );
   }
-
-  void _showDownloadStatusSheet(
-    BuildContext context,
-    AppLocalizations localizations,
-    DownloadState initialStatus,
-    String? errorMessage,
-    int initialProgress,
-    VoidCallback? onCancel,
-  ) {
-    final BuildContext outerContext = context;
-
-    showModalBottomSheet(
-      context: context,
-      isDismissible: false,
-      enableDrag: false,
-      barrierColor: Colors.black54,
-      builder: (BuildContext context) {
-        return PopScope(
-          canPop: false,
-          child: BlocProvider.value(
-            value: BlocProvider.of<BookDetailsBloc>(outerContext),
-            child: BlocConsumer<BookDetailsBloc, BookDetailsState>(
-              listenWhen: (previous, current) {
-                return previous.downloadState != current.downloadState ||
-                    previous.downloadErrorMessage !=
-                        current.downloadErrorMessage;
-              },
-              listener: (context, state) {
-                if (state.downloadState == DownloadState.success &&
-                    !Platform.isAndroid &&
-                    state.downloadFilePath != null) {
-                  OpenFile.open(state.downloadFilePath!);
-                }
-              },
-              buildWhen: (previous, current) {
-                return previous.downloadState != current.downloadState ||
-                    previous.downloadProgress != current.downloadProgress ||
-                    previous.downloadErrorMessage !=
-                        current.downloadErrorMessage;
-              },
-              builder: (context, state) {
-                final currentStatus =
-                    state.downloadState != DownloadState.initial
-                        ? state.downloadState
-                        : initialStatus;
-                final currentError =
-                    state.downloadErrorMessage?.isNotEmpty == true
-                        ? state.downloadErrorMessage
-                        : errorMessage;
-                final currentProgress =
-                    state.downloadState == DownloadState.downloading
-                        ? state.downloadProgress
-                        : initialProgress;
-
-                return SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildStatusIcon(currentStatus, context),
-                        const SizedBox(height: 20),
-
-                        Text(
-                          _getStatusMessage(currentStatus, localizations),
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-
-                        if (currentError != null &&
-                            currentStatus == DownloadState.failed)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8.0),
-                            child: Text(
-                              currentError,
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.error,
-                                fontSize: 12,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-
-                        const SizedBox(height: 20),
-
-                        if (currentStatus == DownloadState.selectingDestination)
-                          LinearProgressIndicator(
-                            backgroundColor: Colors.grey[200],
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Theme.of(context).primaryColor,
-                            ),
-                          ),
-
-                        if (currentStatus == DownloadState.downloading)
-                          Column(
-                            children: [
-                              LinearProgressIndicator(
-                                backgroundColor: Colors.grey[200],
-                                value:
-                                    currentProgress > 0
-                                        ? currentProgress / 100
-                                        : null,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Theme.of(context).primaryColor,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                '$currentProgress%',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                              ),
-                            ],
-                          ),
-
-                        const SizedBox(height: 20),
-
-                        Card(
-                          elevation: 2,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12.0),
-                          ),
-                          child: Material(
-                            color:
-                                Theme.of(
-                                  context,
-                                ).colorScheme.secondaryContainer,
-                            borderRadius: BorderRadius.circular(12.0),
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(12.0),
-                              onTap: () {
-                                if (currentStatus == DownloadState.initial ||
-                                    currentStatus ==
-                                        DownloadState.selectingDestination ||
-                                    currentStatus ==
-                                        DownloadState.downloading) {
-                                  if (onCancel != null) onCancel();
-                                } else {
-                                  Navigator.of(context).pop();
-                                }
-                              },
-                              child: Container(
-                                width: double.infinity,
-                                height: 50,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16.0,
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      currentStatus == DownloadState.success ||
-                                              currentStatus ==
-                                                  DownloadState.failed
-                                          ? Icons.close
-                                          : Icons.cancel_rounded,
-                                      color:
-                                          Theme.of(
-                                            context,
-                                          ).colorScheme.onSecondaryContainer,
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Text(
-                                      currentStatus == DownloadState.success ||
-                                              currentStatus ==
-                                                  DownloadState.failed
-                                          ? localizations.close
-                                          : localizations.cancel,
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color:
-                                            Theme.of(
-                                              context,
-                                            ).colorScheme.onSecondaryContainer,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        );
-      },
-    );
-  }
 }
 
-Widget _buildStatusIcon(DownloadState status, BuildContext context) {
-  switch (status) {
-    case DownloadState.initial:
-      return const CircularProgressIndicator();
-    case DownloadState.selectingDestination:
-      return const Icon(Icons.folder_open_rounded, size: 48);
-    case DownloadState.downloading:
-      return const Icon(Icons.download_rounded, size: 48);
+/// Reports a finished download once, with Open on success and Retry on
+/// failure. A cancel needs no message: the user asked for it.
+void reportDownloadResult(
+  BuildContext context,
+  BookDetailsState state,
+  BookDetailsModel book,
+  VoidCallback retry,
+) {
+  final l10n = AppLocalizations.of(context)!;
+  final bloc = context.read<BookDetailsBloc>();
+  switch (state.downloadState) {
     case DownloadState.success:
-      return Icon(
-        Icons.check_circle,
-        size: 48,
-        color: Theme.of(context).colorScheme.primary,
+      final path = state.downloadFilePath;
+      context.showSnackBar(
+        l10n.downloadedBook(book.title),
+        actionLabel: path == null ? null : l10n.open,
+        onAction:
+            path == null
+                ? null
+                : () => bloc.repository.openLocalFileExternally(
+                  path,
+                  format: path.split('.').last.toLowerCase(),
+                ),
       );
     case DownloadState.failed:
-      return Icon(
-        Icons.error_outline,
-        size: 48,
-        color: Theme.of(context).colorScheme.error,
+      context.showSnackBar(
+        l10n.downloadFailedTitle(book.title),
+        isError: true,
+        actionLabel: l10n.retry,
+        onAction: retry,
       );
-    case DownloadState.canceled:
-      return Icon(
-        Icons.cancel_outlined,
-        size: 48,
-        color: Theme.of(context).colorScheme.secondary,
-      );
-  }
-}
-
-String _getStatusMessage(DownloadState status, AppLocalizations localizations) {
-  switch (status) {
-    case DownloadState.initial:
-      return localizations.preparingDownload;
-    case DownloadState.selectingDestination:
-      return localizations.selectDownloadDestination;
-    case DownloadState.downloading:
-      return localizations.downloadingBook;
-    case DownloadState.success:
-      return localizations.successfullyDownloadedBook;
-    case DownloadState.failed:
-      return localizations.downloadFailed;
-    case DownloadState.canceled:
-      return localizations.downloadCancelled;
+    default:
+      break;
   }
 }

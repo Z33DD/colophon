@@ -11,6 +11,7 @@ import 'package:calibre_web_companion/core/utils/document_bytes.dart';
 import 'package:calibre_web_companion/features/book_details/bloc/book_details_event.dart';
 import 'package:calibre_web_companion/features/book_details/bloc/book_details_state.dart';
 import 'package:calibre_web_companion/features/book_details/data/models/book_details_model.dart';
+import 'package:calibre_web_companion/features/book_details/data/open_format.dart';
 import 'package:calibre_web_companion/features/book_details/data/repositories/book_details_repository.dart';
 import 'package:calibre_web_companion/features/book_details/data/repositories/reading_progress_repository.dart';
 import 'package:calibre_web_companion/features/book_view/data/models/book_view_model.dart';
@@ -467,10 +468,24 @@ class BookDetailsBloc extends Bloc<BookDetailsEvent, BookDetailsState> {
 
       final details = state.bookDetails!;
       final uuid = state.bookViewModel?.uuid ?? details.uuid;
-      final format =
-          details.formats.isNotEmpty
-              ? details.formats.first.toLowerCase()
-              : 'epub';
+      final format = chooseOpenFormat(
+        details.formats,
+        downloaded: downloadManager.downloadedFormats(uuid),
+      );
+
+      // Open the copy already on the device instead of downloading again.
+      final existing = downloadManager.getBookPath(uuid, format: format);
+      if (existing != null &&
+          await repository.openLocalFileExternally(existing, format: format)) {
+        emit(
+          state.copyWith(
+            openInReaderState: OpenInReaderState.success,
+            downloadProgress: 100,
+          ),
+        );
+        await _recordCurrentBookForWidget(format: format);
+        return;
+      }
 
       String? localFilePath;
 
@@ -479,6 +494,7 @@ class BookDetailsBloc extends Bloc<BookDetailsEvent, BookDetailsState> {
         event.selectedDirectory,
         event.schema,
         pathTemplate: event.pathTemplate,
+        format: format,
         progressCallback: (progress) {
           logger.d('Reader download progress: $progress%');
           emit(state.copyWith(downloadProgress: progress));

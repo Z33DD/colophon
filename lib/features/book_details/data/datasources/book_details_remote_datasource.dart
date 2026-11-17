@@ -17,6 +17,7 @@ import 'package:calibre_web_companion/core/utils/saf_file_copy.dart';
 import 'package:calibre_web_companion/features/book_details/data/models/book_details_model.dart';
 import 'package:calibre_web_companion/features/book_details/data/models/custom_column_model.dart';
 import 'package:calibre_web_companion/features/book_details/data/models/metadata_models.dart';
+import 'package:calibre_web_companion/features/book_details/data/open_format.dart';
 import 'package:calibre_web_companion/features/book_view/data/models/book_view_model.dart';
 import 'package:calibre_web_companion/features/reader/data/internal_reader_formats.dart';
 import 'package:calibre_web_companion/features/settings/data/models/download_file_name_options.dart';
@@ -1161,16 +1162,13 @@ class BookDetailsRemoteDatasource {
     DocumentFile? selectedDirectory,
     DownloadSchema schema, {
     required String pathTemplate,
+    String? format,
     Function(int)? progressCallback,
     Future<void> Function(String path)? onFileDownloaded,
   }) async {
+    format ??= chooseOpenFormat(book.formats);
     try {
-      logger.i('Opening book in reader: ${book.title}');
-
-      String format = 'epub';
-      if (book.formats.isNotEmpty) {
-        format = book.formats.first.toLowerCase();
-      }
+      logger.i('Opening book in reader: ${book.title} ($format)');
 
       String localPath;
       String durablePath;

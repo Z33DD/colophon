@@ -4,7 +4,6 @@ import 'dart:typed_data';
 
 import 'package:calibre_web_companion/core/di/injection_container.dart';
 import 'package:calibre_web_companion/core/navigation/app_route.dart';
-import 'package:calibre_web_companion/core/services/download_folder_resolver.dart';
 import 'package:calibre_web_companion/core/services/kosync_service.dart';
 import 'package:calibre_web_companion/core/services/library_events.dart';
 import 'package:calibre_web_companion/core/services/server_capabilities.dart';
@@ -17,6 +16,7 @@ import 'package:calibre_web_companion/features/book_details/bloc/book_details_ev
 import 'package:calibre_web_companion/features/book_details/bloc/book_details_state.dart';
 import 'package:calibre_web_companion/features/book_details/data/models/book_details_model.dart';
 import 'package:calibre_web_companion/features/book_details/data/models/tag_model.dart';
+import 'package:calibre_web_companion/features/book_details/presentation/book_folder.dart';
 import 'package:calibre_web_companion/features/book_details/presentation/widgets/add_to_shelf_widget.dart';
 import 'package:calibre_web_companion/features/book_details/presentation/widgets/book_header.dart';
 import 'package:calibre_web_companion/features/book_details/presentation/widgets/download_to_device_widget.dart';
@@ -451,23 +451,13 @@ class _BookDetailsPageState extends State<BookDetailsPage> {
     AppLocalizations localizations,
   ) async {
     final settingsState = context.read<SettingsBloc>().state;
-    final resolution = await DownloadFolderResolver().resolve(
-      defaultFolderUri: settingsState.defaultDownloadPath,
-    );
-
-    final DocumentFile? selectedDirectory;
-    switch (resolution) {
-      case FolderResolved(:final folder):
-        selectedDirectory = folder;
-      case FolderPickCancelled() || FolderUnavailable():
-        // Stay on book details: a cancelled picker is not navigation.
-        if (context.mounted) {
-          context.showSnackBar(
-            localizations.noFolderWasSelected,
-            isError: true,
-          );
-        }
-        return;
+    final bloc = context.read<BookDetailsBloc>();
+    DocumentFile? selectedDirectory;
+    // A copy on the device opens directly: no folder needed.
+    if (!bloc.state.isDownloaded) {
+      final target = await pickBookFolder(context);
+      if (!target.proceed) return;
+      selectedDirectory = target.folder;
     }
 
     if (!context.mounted) return;

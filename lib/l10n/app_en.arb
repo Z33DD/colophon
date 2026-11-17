@@ -800,5 +800,33 @@
   "showMore": "More",
   "showLess": "Less",
   "openExternally": "Open in another app",
-  "read": "Read"
+  "read": "Read",
+  "folderAlwaysUse": "Always use",
+  "folderSavedHere": "Saving to {folder}",
+  "@folderSavedHere": {
+    "placeholders": {
+      "folder": {
+        "type": "String"
+      }
+    }
+  },
+  "folderUnavailable": "Your download folder isn't available any more. Choose it again in Settings.",
+  "downloadedBook": "Downloaded {title}",
+  "@downloadedBook": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "open": "Open",
+  "downloadFailedTitle": "Couldn't download {title}",
+  "@downloadFailedTitle": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "cancelDownload": "Cancel download"
 }
