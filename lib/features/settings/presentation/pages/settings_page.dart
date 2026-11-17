@@ -25,6 +25,7 @@ import 'package:calibre_web_companion/features/settings/presentation/widgets/she
 import 'package:calibre_web_companion/features/settings/presentation/widgets/sync_settings_widget.dart';
 import 'package:calibre_web_companion/features/settings/presentation/widgets/theme_selector_widget.dart';
 import 'package:calibre_web_companion/l10n/app_localizations.dart';
+import 'package:calibre_web_companion/shared/ui/settings_tiles.dart';
 import 'package:calibre_web_companion/shared/utils/status_colors.dart';
 import 'package:docman/docman.dart';
 import 'package:file_picker/file_picker.dart';
@@ -131,63 +132,114 @@ class _SettingsPageState extends State<SettingsPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildSectionTitle(context, localizations.categories),
-                          _buildSettingsCategoryNavCard(
-                            context,
+                          SettingsGroup(
                             title: localizations.appearance,
-                            subtitle: localizations.themeMode,
-                            icon: Icons.palette_rounded,
-                            onTap:
-                                () => _openAppearanceSettingsSubPage(context),
+                            children: [
+                              SettingsTile(
+                                icon: Icons.palette_outlined,
+                                title: localizations.appearance,
+                                subtitle:
+                                    localizations.settingsAppearanceSummary,
+                                onTap:
+                                    () =>
+                                        _openAppearanceSettingsSubPage(context),
+                              ),
+                            ],
                           ),
-                          _buildLoginSettingsCard(context, localizations),
-                          _buildSettingsCategoryNavCard(
-                            context,
-                            title: localizations.downloadOptions,
-                            subtitle: localizations.downloadService,
-                            icon: Icons.download_rounded,
-                            onTap: () => _openDownloadSettingsSubPage(context),
+                          SettingsGroup(
+                            title: localizations.settingsGroupLibrary,
+                            children: [
+                              SettingsTile(
+                                icon: Icons.menu_book_outlined,
+                                title: localizations.bookDetails,
+                                subtitle:
+                                    localizations.settingsBookDetailsSummary,
+                                onTap:
+                                    () => _openBookDetailsSettingsSubPage(
+                                      context,
+                                    ),
+                              ),
+                              SettingsTile(
+                                icon: Icons.explore_outlined,
+                                title: localizations.discover,
+                                subtitle: localizations.settingsDiscoverSummary,
+                                onTap:
+                                    () => _openDiscoverSettingsSubPage(context),
+                              ),
+                              SettingsTile(
+                                icon: Icons.chrome_reader_mode_outlined,
+                                title: localizations.readerSettings,
+                                subtitle: localizations.settingsReaderSummary,
+                                onTap:
+                                    () => _openReaderSettingsSubPage(context),
+                              ),
+                              SettingsTile(
+                                icon: Icons.travel_explore_outlined,
+                                title: localizations.isbnMetadataSources,
+                                subtitle:
+                                    localizations.isbnMetadataSourcesSubtitle,
+                                onTap:
+                                    () => Navigator.of(context).push(
+                                      AppRoute.page(const IsbnSourcesPage()),
+                                    ),
+                              ),
+                            ],
                           ),
-                          _buildSettingsCategoryNavCard(
-                            context,
-                            title: localizations.readerSettings,
-                            subtitle: localizations.webDavSync,
-                            icon: Icons.chrome_reader_mode_rounded,
-                            onTap: () => _openReaderSettingsSubPage(context),
+                          SettingsGroup(
+                            title: localizations.settingsGroupDevices,
+                            children: [
+                              SettingsTile(
+                                icon: Icons.download_outlined,
+                                title: localizations.downloadOptions,
+                                subtitle:
+                                    localizations.settingsDownloadsSummary,
+                                onTap:
+                                    () => _openDownloadSettingsSubPage(context),
+                              ),
+                              SettingsTile(
+                                icon: Icons.widgets_outlined,
+                                title: localizations.homeWidget,
+                                subtitle: localizations.settingsWidgetSummary,
+                                onTap:
+                                    () => _openWidgetSettingsSubPage(context),
+                              ),
+                            ],
                           ),
-                          _buildSettingsCategoryNavCard(
-                            context,
-                            title: localizations.discover,
-                            subtitle: localizations.categories,
-                            icon: Icons.explore_rounded,
-                            onTap: () => _openDiscoverSettingsSubPage(context),
+                          SettingsGroup(
+                            title: localizations.navRequests,
+                            children: [
+                              SettingsTile(
+                                icon: Icons.move_to_inbox_outlined,
+                                title: localizations.navRequests,
+                                subtitle: localizations.settingsRequestsSummary,
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (state.isDownloaderEnabled)
+                                      const Icon(Icons.check_rounded),
+                                    const Icon(Icons.chevron_right_rounded),
+                                  ],
+                                ),
+                                onTap:
+                                    () => _openRequestsSettingsSubPage(context),
+                              ),
+                            ],
                           ),
-                          _buildSettingsCategoryNavCard(
-                            context,
-                            title: localizations.bookDetails,
-                            subtitle: localizations.bookActions,
-                            icon: Icons.menu_book_rounded,
-                            onTap:
-                                () => _openBookDetailsSettingsSubPage(context),
+                          SettingsGroup(
+                            title: localizations.settingsGroupConnection,
+                            children: [
+                              SettingsTile(
+                                icon: Icons.dns_outlined,
+                                title: localizations.connectionSettings,
+                                subtitle:
+                                    localizations.settingsConnectionSummary,
+                                onTap:
+                                    () => Navigator.of(context).push(
+                                      AppRoute.page(const LoginSettingsPage()),
+                                    ),
+                              ),
+                            ],
                           ),
-                          _buildSettingsCategoryNavCard(
-                            context,
-                            title: localizations.homeWidget,
-                            subtitle: localizations.homeWidgetSubtitle,
-                            icon: Icons.widgets_rounded,
-                            onTap: () => _openWidgetSettingsSubPage(context),
-                          ),
-                          _buildSettingsCategoryNavCard(
-                            context,
-                            title: localizations.isbnMetadataSources,
-                            subtitle: localizations.isbnMetadataSourcesSubtitle,
-                            icon: Icons.travel_explore_rounded,
-                            onTap:
-                                () => Navigator.of(
-                                  context,
-                                ).push(AppRoute.page(const IsbnSourcesPage())),
-                          ),
-
                           const SizedBox(height: 24),
                           _buildSectionTitle(context, localizations.feedback),
                           const FeedbackWidget(),
@@ -321,7 +373,6 @@ class _SettingsPageState extends State<SettingsPage> {
       title: localizations.appearance,
       bodyBuilder:
           (context, state, localizations) => [
-            _buildSectionTitle(context, localizations.appearance),
             const ThemeSelectorWidget(),
             _buildEInkModeToggle(context, state, localizations),
             _buildTextScaleSelector(context, state, localizations),
@@ -339,14 +390,23 @@ class _SettingsPageState extends State<SettingsPage> {
       title: localizations.downloadOptions,
       bodyBuilder:
           (context, state, localizations) => [
-            _buildSectionTitle(context, localizations.downloadOptions),
             const DownloadOptionsWidget(),
             const SyncSettingsWidget(),
             const SizedBox(height: 24),
             _buildSectionTitle(context, localizations.customSend2EReader),
             _buildSend2EreaderToggle(context, state, localizations),
-            const SizedBox(height: 24),
-            _buildSectionTitle(context, 'Shelfmark'),
+          ],
+    );
+  }
+
+  /// Shelfmark has its own page, named like its destination: Requests.
+  void _openRequestsSettingsSubPage(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+    _openSettingsSubPage(
+      context: context,
+      title: localizations.navRequests,
+      bodyBuilder:
+          (context, state, localizations) => [
             _buildDownloaderToggle(context, state, localizations),
           ],
     );
@@ -377,7 +437,6 @@ class _SettingsPageState extends State<SettingsPage> {
       title: localizations.discover,
       bodyBuilder:
           (context, state, localizations) => [
-            _buildSectionTitle(context, localizations.discover),
             _buildDiscoverSettings(context, state, localizations),
           ],
     );
@@ -390,7 +449,6 @@ class _SettingsPageState extends State<SettingsPage> {
       title: localizations.bookDetails,
       bodyBuilder:
           (context, state, localizations) => [
-            _buildSectionTitle(context, localizations.bookDetails),
             _buildBookDetailsSettings(context, state, localizations),
           ],
     );
@@ -551,107 +609,19 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget _buildSettingsCategoryNavCard(
-    BuildContext context, {
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8.0),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Icon(
-                icon,
-                size: 28,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.arrow_forward_ios,
-                size: 16,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLoginSettingsCard(
+  /// Applies [reset] at once and offers Undo, which restores [before].
+  void _resetWithUndo(
     BuildContext context,
-    AppLocalizations localizations,
+    RestoreCustomization before,
+    SettingsEvent reset,
   ) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8.0),
-        onTap: () {
-          Navigator.of(context).push(AppRoute.page(const LoginSettingsPage()));
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Icon(
-                Icons.vpn_key_rounded,
-                size: 28,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      localizations.connectionSettings,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      localizations.httpHeaderSettings,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.arrow_forward_ios,
-                size: 16,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ],
-          ),
-        ),
-      ),
+    final bloc = context.read<SettingsBloc>();
+    final l10n = AppLocalizations.of(context)!;
+    bloc.add(reset);
+    context.showSnackBar(
+      l10n.resetDone,
+      actionLabel: l10n.undo,
+      onAction: () => bloc.add(before),
     );
   }
 
@@ -816,7 +786,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: Text(
-                    localizations.downloadService,
+                    localizations.requestsServiceToggle,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
@@ -841,7 +811,7 @@ class _SettingsPageState extends State<SettingsPage> {
               const SizedBox(height: 16),
               ReachableUrlField(
                 controller: _downloaderUrlController,
-                label: localizations.downloadServiceUrl,
+                label: localizations.requestsServiceUrl,
                 hint: 'https://downloader.example.com',
                 check: (url) async {
                   final status = await getIt<SettingsRepository>()
@@ -1418,7 +1388,9 @@ class _SettingsPageState extends State<SettingsPage> {
             IconButton(
               tooltip: localizations.reset,
               onPressed: () {
-                context.read<SettingsBloc>().add(
+                _resetWithUndo(
+                  context,
+                  RestoreCustomization.bookActions(state),
                   const ResetBookActionsCustomization(),
                 );
               },
@@ -1569,14 +1541,16 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const SizedBox(width: 12),
             Text(
-              localizations.bookDetails,
+              localizations.settingsBookSections,
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const Spacer(),
             IconButton(
               tooltip: localizations.reset,
               onPressed: () {
-                context.read<SettingsBloc>().add(
+                _resetWithUndo(
+                  context,
+                  RestoreCustomization.bookSections(state),
                   const ResetBookDetailsSectionsCustomization(),
                 );
               },
@@ -1757,11 +1731,13 @@ class _SettingsPageState extends State<SettingsPage> {
 
     return _buildSettingsReorderList(
       context: context,
-      title: localizations.discover,
+      title: localizations.settingsDiscoverHomeSections,
       icon: Icons.view_stream_rounded,
       resetTooltip: localizations.reset,
       onReset:
-          () => context.read<SettingsBloc>().add(
+          () => _resetWithUndo(
+            context,
+            RestoreCustomization.discover(state),
             const ResetDiscoverCustomization(),
           ),
       itemCount: orderedSections.length,
@@ -1816,7 +1792,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
     return _buildSettingsReorderList(
       context: context,
-      title: localizations.discover,
+      title: localizations.settingsDiscoverBrowseItems,
       icon: Icons.search_rounded,
       itemCount: orderedItems.length,
       onReorderItem: (oldIndex, newIndex) {
@@ -2336,7 +2312,7 @@ class _SettingsPageState extends State<SettingsPage> {
               TextField(
                 controller: _webDavUrlController,
                 decoration: InputDecoration(
-                  labelText: 'WebDAV URL (e.g. Nextcloud)',
+                  labelText: localizations.webDavUrlLabel,
                   hintText:
                       'https://cloud.example.com/remote.php/dav/files/user/',
                   border: OutlineInputBorder(

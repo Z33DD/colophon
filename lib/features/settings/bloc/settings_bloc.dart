@@ -61,6 +61,58 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
     on<SetCategoryItemsOrder>(_onSetCategoryItemsOrder);
     on<SetCategoryItemEnabled>(_onSetCategoryItemEnabled);
     on<ResetDiscoverCustomization>(_onResetDiscoverCustomization);
+    on<RestoreCustomization>(_onRestoreCustomization);
+  }
+
+  Future<void> _onRestoreCustomization(
+    RestoreCustomization event,
+    Emitter<SettingsState> emit,
+  ) async {
+    emit(
+      state.copyWith(
+        bookActionsOrder: event.bookActionsOrder,
+        enabledBookActions: event.enabledBookActions,
+        bookDetailsSectionsOrder: event.bookDetailsSectionsOrder,
+        enabledBookDetailsSections: event.enabledBookDetailsSections,
+        discoverMainSectionsOrder: event.discoverMainSectionsOrder,
+        enabledDiscoverMainSections: event.enabledDiscoverMainSections,
+        discoverItemsOrder: event.discoverItemsOrder,
+        enabledDiscoverItems: event.enabledDiscoverItems,
+        categoryItemsOrder: event.categoryItemsOrder,
+        enabledCategoryItems: event.enabledCategoryItems,
+      ),
+    );
+    try {
+      await Future.wait([
+        if (event.bookActionsOrder case final v?)
+          repository.setBookActionsOrder(v),
+        if (event.enabledBookActions case final v?)
+          repository.setEnabledBookActions(v),
+        if (event.bookDetailsSectionsOrder case final v?)
+          repository.setBookDetailsSectionsOrder(v),
+        if (event.enabledBookDetailsSections case final v?)
+          repository.setEnabledBookDetailsSections(v),
+        if (event.discoverMainSectionsOrder case final v?)
+          repository.setDiscoverMainSectionsOrder(v),
+        if (event.enabledDiscoverMainSections case final v?)
+          repository.setEnabledDiscoverMainSections(v),
+        if (event.discoverItemsOrder case final v?)
+          repository.setDiscoverItemsOrder(v),
+        if (event.enabledDiscoverItems case final v?)
+          repository.setEnabledDiscoverItems(v),
+        if (event.categoryItemsOrder case final v?)
+          repository.setCategoryItemsOrder(v),
+        if (event.enabledCategoryItems case final v?)
+          repository.setEnabledCategoryItems(v),
+      ]);
+    } catch (e) {
+      emit(
+        state.copyWith(
+          status: SettingsStatus.error,
+          errorMessage: e.toString(),
+        ),
+      );
+    }
   }
 
   Future<void> _onLoadSettings(

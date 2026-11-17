@@ -855,5 +855,27 @@
         "type": "String"
       }
     }
-  }
+  },
+  "settingsGroupLibrary": "Library and reading",
+  "settingsGroupDevices": "Downloads and devices",
+  "settingsGroupConnection": "Connection",
+  "settingsAppearanceSummary": "Theme, e-ink mode, text size, language",
+  "settingsBookDetailsSummary": "Which actions and sections show, and their order",
+  "settingsDiscoverSummary": "Home sections and browse items",
+  "settingsReaderSummary": "Reader storage, WebDAV and KOReader sync",
+  "settingsDownloadsSummary": "Folder, file names, library sync, send to e-reader",
+  "settingsRequestsSummary": "Request books through Shelfmark",
+  "settingsConnectionSummary": "Server address, sign-in, headers, diagnostics",
+  "settingsWidgetSummary": "What the home-screen widget shows and opens",
+  "requestsServiceToggle": "Requests (Shelfmark)",
+  "requestsServiceUrl": "Shelfmark URL",
+  "autosaved": "Saved",
+  "checkingConnection": "Checking connection…",
+  "connectedAndSaved": "Connected · saved",
+  "undo": "Undo",
+  "resetDone": "Order reset",
+  "webDavUrlLabel": "WebDAV URL (e.g. Nextcloud)",
+  "settingsBookSections": "Sections and their order",
+  "settingsDiscoverHomeSections": "Home sections",
+  "settingsDiscoverBrowseItems": "Browse items"
 }

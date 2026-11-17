@@ -1,3 +1,4 @@
+import 'package:calibre_web_companion/features/settings/bloc/settings_state.dart';
 import 'package:calibre_web_companion/features/settings/data/models/download_schema.dart';
 import 'package:calibre_web_companion/features/settings/data/models/theme_source.dart';
 import 'package:equatable/equatable.dart';
@@ -368,4 +369,69 @@ class SetCategoryItemEnabled extends SettingsEvent {
 
 class ResetDiscoverCustomization extends SettingsEvent {
   const ResetDiscoverCustomization();
+}
+
+/// Puts customization lists back as they were, e.g. to undo a reset.
+/// Only the given lists change.
+class RestoreCustomization extends SettingsEvent {
+  final List<String>? bookActionsOrder;
+  final List<String>? enabledBookActions;
+  final List<String>? bookDetailsSectionsOrder;
+  final List<String>? enabledBookDetailsSections;
+  final List<String>? discoverMainSectionsOrder;
+  final List<String>? enabledDiscoverMainSections;
+  final List<String>? discoverItemsOrder;
+  final List<String>? enabledDiscoverItems;
+  final List<String>? categoryItemsOrder;
+  final List<String>? enabledCategoryItems;
+
+  const RestoreCustomization({
+    this.bookActionsOrder,
+    this.enabledBookActions,
+    this.bookDetailsSectionsOrder,
+    this.enabledBookDetailsSections,
+    this.discoverMainSectionsOrder,
+    this.enabledDiscoverMainSections,
+    this.discoverItemsOrder,
+    this.enabledDiscoverItems,
+    this.categoryItemsOrder,
+    this.enabledCategoryItems,
+  });
+
+  /// Snapshot of the book action lists in [state].
+  factory RestoreCustomization.bookActions(SettingsState state) =>
+      RestoreCustomization(
+        bookActionsOrder: state.bookActionsOrder,
+        enabledBookActions: state.enabledBookActions,
+      );
+
+  factory RestoreCustomization.bookSections(SettingsState state) =>
+      RestoreCustomization(
+        bookDetailsSectionsOrder: state.bookDetailsSectionsOrder,
+        enabledBookDetailsSections: state.enabledBookDetailsSections,
+      );
+
+  factory RestoreCustomization.discover(SettingsState state) =>
+      RestoreCustomization(
+        discoverMainSectionsOrder: state.discoverMainSectionsOrder,
+        enabledDiscoverMainSections: state.enabledDiscoverMainSections,
+        discoverItemsOrder: state.discoverItemsOrder,
+        enabledDiscoverItems: state.enabledDiscoverItems,
+        categoryItemsOrder: state.categoryItemsOrder,
+        enabledCategoryItems: state.enabledCategoryItems,
+      );
+
+  @override
+  List<Object?> get props => [
+    bookActionsOrder,
+    enabledBookActions,
+    bookDetailsSectionsOrder,
+    enabledBookDetailsSections,
+    discoverMainSectionsOrder,
+    enabledDiscoverMainSections,
+    discoverItemsOrder,
+    enabledDiscoverItems,
+    categoryItemsOrder,
+    enabledCategoryItems,
+  ];
 }
